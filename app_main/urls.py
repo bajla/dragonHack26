@@ -13,6 +13,5 @@ urlpatterns = [
     path('analytics/', views.analytics, name="analytics"),
     path('chat/', views.chat, name="chat"),
     path('budgets/', views.budgets, name="budgets"),
-    path('scan-receipt/', views.scan_receipt, name="scan_receipt"),
-    path('scan-receipt/process/', views.process_receipt_image, name="scan_receipt_process"),
+    path('scan-receipt/', views.process_receipt_image, name="scan_receipt"),
 ]
