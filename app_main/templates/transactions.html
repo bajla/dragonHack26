@@ -16,7 +16,13 @@
             <div class="tx-merch">{{ transaction.name }}</div>
             <div class="tx-meta"><div class="tx-cat-tag">{{ transaction.merchant }}</div><div class="tx-date">Apr 17</div></div>
         </div>
-        <div class="tx-amt deb">−€{{ transaction.cost|floatformat:2 }}</div>
+        <div class="tx-actions">
+            <div class="tx-amt deb">−€{{ transaction.cost|floatformat:2 }}</div>
+            <div class="inline-actions">
+                <button type="button" class="btn btn-sm">Edit</button>
+                <button type="button" class="btn btn-sm btn-danger">Delete</button>
+            </div>
+        </div>
     </div>
     {% endfor %}
     </div>
@@ -29,11 +35,38 @@
     </div>
     <div class="panel-body">
         <div class="receipt-sample">
-            <div class="receipt-sample-title">Mercator d.d. · 17 Apr 2025</div>
+            <div class="receipt-sample-head">
+                <div class="receipt-sample-title">Mercator d.d. · 17 Apr 2025</div>
+                <div class="inline-actions">
+                   
+                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                </div>
+            </div>
             <ul class="receipt-sample-items">
-                <li class="receipt-sample-item"><span class="receipt-sample-item-name">Fresh milk 1L</span><span>€1.29</span></li>
-                <li class="receipt-sample-item"><span class="receipt-sample-item-name">Sourdough loaf</span><span>€2.40</span></li>
-                <li class="receipt-sample-item"><span class="receipt-sample-item-name">Coffee beans 250g</span><span>€8.90</span></li>
+                <li class="receipt-sample-item">
+                    <span class="receipt-sample-item-name">Fresh milk 1L</span>
+                    <span>€1.29</span>
+                    <div class="inline-actions">
+                        <button type="button" class="btn btn-sm">Edit</button>
+                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                    </div>
+                </li>
+                <li class="receipt-sample-item">
+                    <span class="receipt-sample-item-name">Sourdough loaf</span>
+                    <span>€2.40</span>
+                    <div class="inline-actions">
+                        <button type="button" class="btn btn-sm">Edit</button>
+                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                    </div>
+                </li>
+                <li class="receipt-sample-item">
+                    <span class="receipt-sample-item-name">Coffee beans 250g</span>
+                    <span>€8.90</span>
+                    <div class="inline-actions">
+                        <button type="button" class="btn btn-sm">Edit</button>
+                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                    </div>
+                </li>
                 <li class="receipt-sample-item receipt-sample-total"><span class="receipt-sample-item-name">Total</span><span>€12.59</span></li>
             </ul>
         </div>
@@ -68,5 +101,4 @@
         </div>
     </div>
 {% endcomment %}
-</div>
 {% endblock %}

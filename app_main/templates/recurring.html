@@ -7,25 +7,229 @@
 <div class="panel">
     <div class="panel-head">
         <div class="panel-title">Recurring expenses</div>
-        <div class="panel-link">manage rules</div>
+        <button type="button" class="btn btn-gold btn-sm" id="btn-add-recurring">+ Add recurring</button>
     </div>
     <div class="panel-body panel-body-tight">
-        <div class="rc">
+        <div class="rc" data-recurring-id="rent" data-title="Rent" data-cost="680" data-type="monthly" data-day="monday">
             <div class="rc-ico">🏠</div>
             <div class="rc-inf">
                 <div class="rc-name">Rent</div>
                 <div class="rc-cycle">MONTHLY · 1ST · N26</div>
             </div>
-            <div class="rc-right"><div class="rc-amt">€680</div><div class="rc-next text-muted">paid Apr 1</div></div>
+            <div class="rc-right">
+                <div class="rc-amt">€680</div>
+                <div class="rc-next text-muted">paid Apr 1</div>
+                <div class="rc-actions">
+                    <button type="button" class="btn btn-sm btn-rec-edit">Edit</button>
+                    <button type="button" class="btn btn-sm btn-danger btn-rec-delete">Delete</button>
+                </div>
+            </div>
         </div>
-        <div class="rc">
+        <div class="rc" data-recurring-id="spotify" data-title="Spotify Premium" data-cost="11" data-type="monthly" data-day="wednesday">
             <div class="rc-ico">🎵</div>
             <div class="rc-inf">
                 <div class="rc-name">Spotify Premium</div>
                 <div class="rc-cycle">MONTHLY · 22ND · REVOLUT</div>
             </div>
-            <div class="rc-right"><div class="rc-amt">€11</div><div class="rc-next text-gold">in 4 days</div></div>
+            <div class="rc-right">
+                <div class="rc-amt">€11</div>
+                <div class="rc-next text-gold">in 4 days</div>
+                <div class="rc-actions">
+                    <button type="button" class="btn btn-sm btn-rec-edit">Edit</button>
+                    <button type="button" class="btn btn-sm btn-danger btn-rec-delete">Delete</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<div class="modal-backdrop" id="recurring-modal" role="dialog" aria-modal="true" aria-labelledby="recurring-modal-title" aria-hidden="true" hidden>
+    <div class="modal-sheet">
+        <div class="modal-head">
+            <h2 class="modal-title" id="recurring-modal-title">Add recurring transaction</h2>
+            <button type="button" class="modal-close" id="recurring-modal-close" aria-label="Close">&times;</button>
+        </div>
+        <form class="modal-form" id="recurring-modal-form" novalidate>
+            <input type="hidden" id="recurring-id" name="id" value="">
+
+            <div class="modal-field">
+                <label class="qa-label" for="recurring-title">Title</label>
+                <input class="qa-input" type="text" id="recurring-title" name="title" required placeholder="e.g. Rent, Spotify">
+            </div>
+
+            <div class="modal-field">
+                <label class="qa-label" for="recurring-cost">Cost</label>
+                <input class="qa-input" type="number" id="recurring-cost" name="cost" inputmode="decimal" step="0.01" placeholder="0.00" required>
+            </div>
+
+            <div class="modal-field">
+                <label class="qa-label" for="recurring-type">Type</label>
+                <select class="qa-input qa-select" id="recurring-type" name="type" required>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly" selected>Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+            </div>
+
+            <div class="modal-field">
+                <label class="qa-label" for="recurring-day">Day of the week</label>
+                <select class="qa-input qa-select" id="recurring-day" name="day" required>
+                    <option value="monday">Monday</option>
+                    <option value="tuesday">Tuesday</option>
+                    <option value="wednesday">Wednesday</option>
+                    <option value="thursday">Thursday</option>
+                    <option value="friday">Friday</option>
+                    <option value="saturday">Saturday</option>
+                    <option value="sunday">Sunday</option>
+                </select>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-sm" id="recurring-modal-cancel">Cancel</button>
+                <button type="submit" class="btn btn-gold btn-sm" id="recurring-modal-submit">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrascripts %}
+<script>
+(() => {
+    const modal = document.getElementById("recurring-modal");
+    const btnOpen = document.getElementById("btn-add-recurring");
+    const btnClose = document.getElementById("recurring-modal-close");
+    const btnCancel = document.getElementById("recurring-modal-cancel");
+    const form = document.getElementById("recurring-modal-form");
+
+    const setMode = ({ mode, row }) => {
+        const title = document.getElementById("recurring-modal-title");
+        const id = document.getElementById("recurring-id");
+        const t = document.getElementById("recurring-title");
+        const c = document.getElementById("recurring-cost");
+        const ty = document.getElementById("recurring-type");
+        const day = document.getElementById("recurring-day");
+
+        if (mode === "edit" && row) {
+            title.textContent = "Edit recurring transaction";
+            id.value = row.dataset.recurringId || "";
+            t.value = row.dataset.title || "";
+            c.value = row.dataset.cost || "";
+            ty.value = row.dataset.type || "monthly";
+            day.value = row.dataset.day || "monday";
+        } else {
+            title.textContent = "Add recurring transaction";
+            id.value = "";
+            form.reset();
+            ty.value = "monthly";
+            day.value = "monday";
+        }
+        t.focus();
+    };
+
+    const open = () => {
+        modal.hidden = false;
+        modal.removeAttribute("hidden");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+    };
+
+    const close = () => {
+        modal.hidden = true;
+        modal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("modal-open");
+    };
+
+    btnOpen?.addEventListener("click", () => {
+        setMode({ mode: "add" });
+        open();
+    });
+    btnClose?.addEventListener("click", close);
+    btnCancel?.addEventListener("click", close);
+    modal?.addEventListener("click", (e) => { if (e.target === modal) close(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modal && !modal.hidden) close(); });
+
+    document.querySelectorAll(".btn-rec-edit").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const row = btn.closest(".rc");
+            setMode({ mode: "edit", row });
+            open();
+        });
+    });
+
+    document.querySelectorAll(".btn-rec-delete").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const row = btn.closest(".rc");
+            const title = row?.querySelector(".rc-name")?.textContent?.trim() || "this recurring expense";
+            if (!row) return;
+            if (!confirm(`Delete ${title}?`)) return;
+            row.remove();
+        });
+    });
+
+    form?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = document.getElementById("recurring-id").value;
+        const title = document.getElementById("recurring-title").value.trim();
+        const costRaw = document.getElementById("recurring-cost").value;
+        const type = document.getElementById("recurring-type").value;
+        const day = document.getElementById("recurring-day").value;
+
+        if (!title || costRaw === "") return;
+        const cost = parseFloat(String(costRaw).replace(",", "."));
+        if (Number.isNaN(cost)) return;
+
+        // Frontend-only: update existing row or add a new one
+        const panelBody = document.querySelector(".panel .panel-body");
+        if (!panelBody) return;
+
+        let row = null;
+        if (id) {
+            row = document.querySelector(`.rc[data-recurring-id="${CSS.escape(id)}"]`);
+        }
+        if (!row) {
+            row = document.createElement("div");
+            row.className = "rc";
+            row.dataset.recurringId = id || `rec_${Date.now()}`;
+            row.innerHTML = `
+                <div class="rc-ico">⏱</div>
+                <div class="rc-inf">
+                    <div class="rc-name"></div>
+                    <div class="rc-cycle"></div>
+                </div>
+                <div class="rc-right">
+                    <div class="rc-amt"></div>
+                    <div class="rc-next text-muted">saved</div>
+                    <div class="rc-actions">
+                        <button type="button" class="btn btn-sm btn-rec-edit">Edit</button>
+                        <button type="button" class="btn btn-sm btn-danger btn-rec-delete">Delete</button>
+                    </div>
+                </div>
+            `;
+            panelBody.appendChild(row);
+            row.querySelector(".btn-rec-edit").addEventListener("click", () => {
+                setMode({ mode: "edit", row });
+                open();
+            });
+            row.querySelector(".btn-rec-delete").addEventListener("click", () => {
+                const t = row.querySelector(".rc-name")?.textContent?.trim() || "this recurring expense";
+                if (!confirm(`Delete ${t}?`)) return;
+                row.remove();
+            });
+        }
+
+        row.dataset.title = title;
+        row.dataset.cost = String(cost);
+        row.dataset.type = type;
+        row.dataset.day = day;
+
+        row.querySelector(".rc-name").textContent = title;
+        row.querySelector(".rc-amt").textContent = `€${cost.toFixed(2)}`;
+        row.querySelector(".rc-cycle").textContent = `${type.toUpperCase()} · ${day.toUpperCase()}`;
+
+        close();
+    });
+})();
+</script>
 {% endblock %}
