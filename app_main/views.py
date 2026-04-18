@@ -251,9 +251,9 @@ def add_money(request):
 def submit_money(request):
     curr_description = request.POST.get("description", "").strip()
 
-    IncomeTransaction.object.create(user=request.user,
-                            type=request.POST.get("type"),
-                            amount=request.POST.get("amount"),
-                            description=curr_description or None)
+    IncomeTransaction.objects.create(user=request.user,
+                                    type=request.POST.get("type"),
+                                    amount=request.POST.get("amount"),
+                                    description=curr_description or None)
 
     return render(request, 'home.html', {"active_page": "dashboard"})
