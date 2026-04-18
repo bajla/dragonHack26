@@ -247,11 +247,20 @@
             <div class="scan-sub">Drop an image or photograph a receipt. AI extracts every line item and amount automatically.</div>
             <form id="receiptVideoForm" method="POST" enctype="multipart/form-data" action="{% url 'scan_receipt'%}">
                 {% csrf_token %}
-                <input 
-                    type="file" 
-                    name="video" 
+                <div class="qa-field scan-account-field">
+                    <label class="qa-label" for="receipt-scan-account">Account</label>
+                    <select class="qa-input qa-select" id="receipt-scan-account" name="account" required>
+                        <option value="" disabled selected>Select account…</option>
+                        <option value="n26-checking">N26 Checking</option>
+                        <option value="revolut">Revolut</option>
+                        <option value="cash-wallet">Cash wallet</option>
+                    </select>
+                </div>
+                <input
+                    type="file"
+                    name="video"
                     id="receiptVideoBottom"
-                    accept="video/*" 
+                    accept="video/*"
                     capture="environment"
                     class="receipt-upload"
                     style="display: none;">
