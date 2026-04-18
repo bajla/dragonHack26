@@ -171,3 +171,36 @@ def quick_add_item(request):
                                    merchant=request.POST.get("merchant"),
                                    name=request.POST.get("name"))
     return render(request, 'home.html', {"active_page": "dashboard"})
+
+@login_required
+def add_expense(request):
+    return render(request, 'add_expense.html', {"active_page": "add_expense"})
+
+@login_required
+def submit_expense(request):
+    receipt_merchant = request.POST.get("merchant")
+    
+    receipt_obj = ReceiptTransaction.objects.create(user=request.user,
+                                      title="Manually inputted reciept")
+
+    i = 0
+    while f"item_name{i}" in request.POST:
+        curr_category = request.POST.get(f"item_category{i}")
+        curr_category = Category.objects.get(title=curr_category)
+
+        ItemTransaction.objects.create(user=request.user,
+                                   cost=request.POST.get(f"item_cost{i}"),
+                                   quantity=request.POST.get(f"item_quantity{i}"),
+                                   category=curr_category,
+                                   merchant=receipt_merchant,
+                                   receipt=receipt_obj,
+                                   name=request.POST.get(f"item_name{i}"))
+        i += 1
+
+
+    return render(request, 'home.html', {"active_page": "dashboard"})
+
+
+@login_required
+def add_money(request):
+    return render(request, 'home.html', {"active_page": "dashboard"})

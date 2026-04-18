@@ -10,7 +10,7 @@ class Budget(models.Model):
 
 class ReceiptTransaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    file = models.FileField(upload_to='receipts/')
+    file = models.FileField(upload_to='receipts/', blank=True, null=True)
     title = models.CharField(max_length=100, blank=True, null=True)
 
 class Category(models.Model):
