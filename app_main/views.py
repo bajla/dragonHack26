@@ -249,7 +249,7 @@ def add_money(request):
 
 @login_required
 def submit_money(request):
-    if request.POST.get("description") == null:
+    if request.POST.get("description") == None:
         IncomeTransaction.object.create(user=request.user,
                                         type=request.POST.get("type"),
                                         amount=request.POST.get("amount"))
