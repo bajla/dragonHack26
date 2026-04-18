@@ -9,7 +9,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import ReceiptTransaction, Category, ItemTransaction, Account
+from .models import ReceiptTransaction, Category, ItemTransaction, Account, IncomeTransaction
 
 from .tasks import receipt_image_background_process
 
@@ -245,4 +245,18 @@ def submit_expense(request):
 
 @login_required
 def add_money(request):
+    return render(request, 'add_money.html', {"active_page": "add_money"})
+
+@login_required
+def submit_money(request):
+    if request.POST.get("description") == null:
+        IncomeTransaction.object.create(user=request.user,
+                                        type=request.POST.get("type"),
+                                        amount=request.POST.get("amount"))
+    else:
+        IncomeTransaction.object.create(user=request.user,
+                                type=request.POST.get("type"),
+                                amount=request.POST.get("amount"),
+                                description=request.POST.get("description"))
+
     return render(request, 'home.html', {"active_page": "dashboard"})
