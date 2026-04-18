@@ -15,4 +15,8 @@ urlpatterns = [
     path('budgets/', views.budgets, name="budgets"),
     path('add_account/', views.add_account, name="add_account"),
     path('scan-receipt/', views.process_receipt_image, name="scan_receipt"),
+    path('add-item/', views.quick_add_item, name="quick_add_item"),
+    path('add-expense/', views.add_expense, name="add_expense"),
+    path('submit-expense/', views.submit_expense, name="submit_expense"),
+    path('add-money/', views.add_money, name="add_money"),
 ]

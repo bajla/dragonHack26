@@ -87,10 +87,20 @@
                     <button class="btn" type="submit">Log out</button>
                 </form>
                 {% block topbar_actions %}
-                <button class="btn btn-gold">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#0C0C0E" stroke-width="1.5"><path d="M6 1v10M1 6h10"/></svg>
-                    Add expense
-                </button>
+                <form method="POST" action="{% url 'add_money' %}">
+                    {% csrf_token %}
+                    <button class="btn btn-gold">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#0C0C0E" stroke-width="1.5"><path d="M6 1v10M1 6h10"/></svg>
+                        Add money
+                    </button>
+                </form>
+                <form method="POST" action="{% url 'add_expense' %}">
+                    {% csrf_token %}
+                    <button class="btn btn-gold">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#0C0C0E" stroke-width="1.5"><path d="M6 1v10M1 6h10"/></svg>
+                        Add expense
+                    </button>
+                </form>
                 {% endblock %}
             </div>
         </header>

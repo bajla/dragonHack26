@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger | Add Expense{% endblock %}
+{% block page_title %}Add expense{% endblock %}
+
+{% block content %}
+<div class="stack">
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">New expense</div>
+            <div class="panel-link">manual entry</div>
+        </div>
+        <div class="panel-body">
+            <form method="post" action="{% url 'submit_expense' %}">
+                {% csrf_token %}
+
+                <div class="qa-fields">
+                    <div class="qa-field">
+                        <div class="qa-label">Merchant</div>
+                        <input class="qa-input" type="text" name="merchant" placeholder="e.g. Mercator, Bolt, Telekom">
+                    </div>
+                </div>
+
+                <div class="qa-hint">Add the shared expense details above, then fill in the line item fields below.</div>
+
+                <div id="expense-items">
+                    <div class="qa-fields">
+                        <div class="qa-field">
+                            <div class="qa-label">Name</div>
+                            <input class="qa-input" type="text" name="item_name0" placeholder="e.g. Apples, Bicycle, ...">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Cost</div>
+                            <input class="qa-input" type="text" name="item_cost0" placeholder="€ 0.00">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Quantity</div>
+                            <input class="qa-input" type="text" name="item_quantity0" placeholder="1.5">
+                        </div>
+                        <div class="qa-field">
+                            <div class="qa-label">Category</div>
+                            <select class="qa-input" name="item_category0">
+                                <option value="">Select a category</option>
+                                <option value="Groceries">Groceries</option>
+                                <option value="Dining out">Dining out</option>
+                                <option value="Transport">Transport</option>
+                                <option value="Clothing">Clothing</option>
+                                <option value="Medical">Medical</option>       
+                                <option value="Entertainment">Entertainment</option>
+                                <option value="Gifts">Gifts</option>
+                                <option value="Travel">Travel</option>
+                                <option value="Luxury">Luxury</option>  
+                                <option value="Home & Garden">Home & Garden</option>  
+                                <option value="Electronics">Electronics</option>  
+                                <option value="Miscellanious">Miscellanious</option>                              </select>
+                       </div>
+                    </div>
+                </div>
+
+                <div class="expense-add-row">
+                    <button class="btn expense-add-btn" id="add-expense-row" type="button">+</button>
+                </div>
+
+                <div class="section-spacer"></div>
+
+                <div class="qa-btns">
+                    <button class="btn btn-gold btn-flex" type="submit">Submit expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrascripts %}
+<script>
+(() => {
+    const addButton = document.getElementById("add-expense-row");
+    const items = document.getElementById("expense-items");
+    let itemIndex = 1;
+
+    if (!addButton || !items) return;
+
+    addButton.addEventListener("click", () => {
+        const row = document.createElement("div");
+        row.className = "qa-fields";
+        row.innerHTML = `
+            <div class="section-spacer"></div>
+            <div class="section-spacer"></div>
+            <div class="qa-field">
+                <div class="qa-label">Name</div>
+                <input class="qa-input" type="text" name="item_name${itemIndex}" placeholder="e.g. Apples, Bicycle, ...">
+            </div>
+            <div class="qa-field">
+                <div class="qa-label">Cost</div>
+                <input class="qa-input" type="text" name="item_cost${itemIndex}" placeholder="€ 0.00">
+            </div>
+            <div class="qa-field">
+                <div class="qa-label">Quantity</div>
+                <input class="qa-input" type="text" name="item_quantity${itemIndex}" placeholder="1.5">
+            </div>
+            <div class="qa-field">
+                <div class="qa-label">Category</div>
+                <select class="qa-input" name="item_category${itemIndex}">
+                    <option value="">Select a category</option>
+                    <option value="Groceries">Groceries</option>
+                    <option value="Dining out">Dining out</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Medical">Medical</option>       
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Gifts">Gifts</option>
+                    <option value="Travel">Travel</option>
+                    <option value="Luxury">Luxury</option>  
+                    <option value="Home & Garden">Home & Garden</option>  
+                    <option value="Electronics">Electronics</option>  
+                    <option value="Miscellanious">Miscellanious</option>                              </select>
+            </div>
+        </div>
+    </div>
+        `;
+
+        items.appendChild(row);
+        itemIndex += 1;
+    });
+})();
+</script>
+{% endblock %}
