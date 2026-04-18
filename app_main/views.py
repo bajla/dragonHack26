@@ -196,10 +196,11 @@ def export_data_excel(request):
 
 
 @login_required
-def export_data_excel(request):
+def export_data_json(request):
 
     json_path = os.path.join(os.path.dirname(__file__), 'inputTest1.json')
     with open(json_path, 'r') as f:
         jsonData = json.load(f)
 
-    return jsonData
+
+    return response
