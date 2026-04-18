@@ -16,4 +16,5 @@ urlpatterns = [
     path('scan-receipt/', views.scan_receipt, name="scan_receipt"),
     path('scan-receipt/process/', views.process_receipt_image, name="scan_receipt_process"),
     path('export-data-excel/', views.export_data_excel, name="export_data_excel"),
+    path('export-data-json/', views.export_data_json, name="export_data_json"),
 ]

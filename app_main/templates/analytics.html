@@ -48,4 +48,11 @@
     </form>
 </div>
 
+<div style="margin-top: 2rem;">
+    <form action="{% url 'export_data_' %}" method="get">
+        <input type="hidden" name="format" value="json">
+        <button type="submit" class="btn btn-gold btn-flex">Export as json</button>
+    </form>
+</div>
+
 {% endblock %}

@@ -193,3 +193,13 @@ def export_data_excel(request):
     )
     response['Content-Disposition'] = 'attachment; filename="transactions.xlsx"'
     return response
+
+
+@login_required
+def export_data_excel(request):
+
+    json_path = os.path.join(os.path.dirname(__file__), 'inputTest1.json')
+    with open(json_path, 'r') as f:
+        jsonData = json.load(f)
+
+    return jsonData
