@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger | Transactions{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="panel-head">
+        <div class="panel-title">All transactions</div>
+        <div class="panel-link">April 2025</div>
+    </div>
+    <div class="panel-body panel-body-tight">
+        <div class="tx">
+            <div class="tx-ico">☕</div>
+            <div class="tx-inf">
+                <div class="tx-merch">Stow Coffee Roasters</div>
+                <div class="tx-meta"><div class="tx-cat-tag">Specialty Coffee Shops</div><div class="tx-date">Apr 17</div></div>
+            </div>
+            <div class="tx-amt deb">−€5.40</div>
+        </div>
+        <div class="tx">
+            <div class="tx-ico">🚌</div>
+            <div class="tx-inf">
+                <div class="tx-merch">LPP Monthly pass</div>
+                <div class="tx-meta"><div class="tx-cat-tag">Public transport</div><div class="tx-date">Apr 15</div></div>
+            </div>
+            <div class="tx-amt deb">−€28.00</div>
+        </div>
+        <div class="tx">
+            <div class="tx-ico">↑</div>
+            <div class="tx-inf">
+                <div class="tx-merch">April salary</div>
+                <div class="tx-meta"><div class="tx-cat-tag green-dim text-green">Income</div><div class="tx-date">Apr 14</div></div>
+            </div>
+            <div class="tx-amt cre">+€3,200</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

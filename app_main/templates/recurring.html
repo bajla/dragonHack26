@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger | Recurring{% endblock %}
+{% block page_title %}Recurring{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="panel-head">
+        <div class="panel-title">Recurring expenses</div>
+        <div class="panel-link">manage rules</div>
+    </div>
+    <div class="panel-body panel-body-tight">
+        <div class="rc">
+            <div class="rc-ico">🏠</div>
+            <div class="rc-inf">
+                <div class="rc-name">Rent</div>
+                <div class="rc-cycle">MONTHLY · 1ST · N26</div>
+            </div>
+            <div class="rc-right"><div class="rc-amt">€680</div><div class="rc-next text-muted">paid Apr 1</div></div>
+        </div>
+        <div class="rc">
+            <div class="rc-ico">🎵</div>
+            <div class="rc-inf">
+                <div class="rc-name">Spotify Premium</div>
+                <div class="rc-cycle">MONTHLY · 22ND · REVOLUT</div>
+            </div>
+            <div class="rc-right"><div class="rc-amt">€11</div><div class="rc-next text-gold">in 4 days</div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

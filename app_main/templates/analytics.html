@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger | Analytics{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="main-grid">
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">Category performance</div>
+            <div class="panel-link">last 30 days</div>
+        </div>
+        <div class="panel-body">
+            <div class="cat-item">
+                <div class="cat-top">
+                    <div class="cat-name"><div class="cat-pip gold-bg"></div>Groceries</div>
+                    <div class="cat-amt">€706</div>
+                </div>
+                <div class="cat-track"><div class="cat-fill gold-bg" style="width:88%"></div></div>
+            </div>
+            <div class="cat-item">
+                <div class="cat-top">
+                    <div class="cat-name"><div class="cat-pip blue-bg"></div>Transport</div>
+                    <div class="cat-amt">€274</div>
+                </div>
+                <div class="cat-track"><div class="cat-fill blue-bg" style="width:55%"></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">AI insights</div>
+            <div class="panel-link">confidence high</div>
+        </div>
+        <div class="panel-body">
+            <div class="ai-banner">
+                <div class="ai-marker">AI</div>
+                <div class="ai-text">Coffee spend trend is elevated for two consecutive weeks. Suggested cap: <strong>€45/week</strong>.</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

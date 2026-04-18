@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger | AI Chat{% endblock %}
+{% block page_title %}AI Chat{% endblock %}
+
+{% block topbar_actions %}
+<a class="btn" href="{% url 'dashboard' %}">Back to dashboard</a>
+{% endblock %}
+
+{% block content %}
+<section class="chat-shell">
+    <div class="chat-header">
+        <div>
+            <div class="panel-title">Ledger AI assistant</div>
+            <div class="chat-subtitle">Ask about spending trends, budgets, and receipt insights.</div>
+        </div>
+        <span class="chat-status">Online</span>
+    </div>
+
+    <div class="chat-thread">
+        <article class="chat-msg chat-msg-ai">
+            <div class="chat-bubble">
+                You spent 12% less on transport this month. Want a weekly summary every Sunday?
+            </div>
+        </article>
+        <article class="chat-msg chat-msg-user">
+            <div class="chat-bubble">
+                Yes, and also tell me if coffee spend is above €40/week.
+            </div>
+        </article>
+        <article class="chat-msg chat-msg-ai">
+            <div class="chat-bubble">
+                Done. I will alert you if coffee spend crosses €40 in a week and include it in your Sunday report.
+            </div>
+        </article>
+    </div>
+
+    <form class="chat-composer" action="#" method="post">
+        <label class="sr-only" for="chat-input">Ask Ledger AI</label>
+        <input id="chat-input" class="chat-input" type="text" placeholder="Ask Ledger AI anything about your finances...">
+        <button class="btn btn-gold" type="submit">Send</button>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger | Budgets{% endblock %}
+{% block page_title %}Budgets{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="panel-head">
+        <div class="panel-title">Monthly budgets</div>
+        <div class="panel-link">April 2025</div>
+    </div>
+    <div class="panel-body">
+        <div class="cat-item">
+            <div class="cat-top">
+                <div class="cat-name"><div class="cat-pip gold-bg"></div>Groceries</div>
+                <div class="cat-amt">€706 / €800</div>
+            </div>
+            <div class="cat-track"><div class="cat-fill gold-bg" style="width:88%"></div></div>
+            <div class="cat-pct">€94 remaining</div>
+        </div>
+        <div class="cat-item">
+            <div class="cat-top">
+                <div class="cat-name"><div class="cat-pip blue-bg"></div>Transport</div>
+                <div class="cat-amt">€274 / €350</div>
+            </div>
+            <div class="cat-track"><div class="cat-fill blue-bg" style="width:78%"></div></div>
+            <div class="cat-pct">€76 remaining</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
