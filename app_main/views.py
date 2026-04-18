@@ -8,7 +8,31 @@ import json
 
 # Create your views here.
 def home(request):
-    return render(request, 'home.html')
+    return render(request, 'home.html', {"active_page": "dashboard"})
+
+
+def transactions(request):
+    return render(request, 'transactions.html', {"active_page": "transactions"})
+
+
+def recurring(request):
+    return render(request, 'recurring.html', {"active_page": "recurring"})
+
+
+def analytics(request):
+    return render(request, 'analytics.html', {"active_page": "analytics"})
+
+
+def budgets(request):
+    return render(request, 'budgets.html', {"active_page": "budgets"})
+
+
+def chat(request):
+    return render(request, 'chat.html', {"active_page": "chat"})
+
+
+def scan_receipt(request):
+    return render(request, 'scan_receipt.html', {"active_page": "scan"})
 
 def process_receipt_image(request):
     uploaded_file = None

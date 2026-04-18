@@ -4,40 +4,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}SpenderTracker{% endblock %}</title>
-
-    <!-- Global Styles -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-
-    <!-- Page-specific extra styles -->
-    {% block extrastyle %}
-    {% endblock %}
+    <title>{% block title %}Ledger{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/ledger.css' %}">
+    {% block extrastyle %}{% endblock %}
 </head>
 <body>
+<h2 class="sr-only">Premium dark expense tracker dashboard with Bloomberg terminal aesthetic, showing net worth, transactions, and AI insights</h2>
+<div class="app">
+    <aside class="sidebar">
+        <div class="logo-area">
+            <div class="logo-wordmark">LEDG<span>ER</span></div>
+            <div class="logo-sub">AI · Finance OS</div>
+        </div>
 
-    <!-- Navbar (optional) -->
-    <header>
-        <nav>
-            <h1>My App</h1>
-        </nav>
-    </header>
+        <div class="nav">
+            <div class="nav-group-label">Navigate</div>
+            <a class="nav-item {% if active_page == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+                <svg class="ni" viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/><rect x="1" y="8" width="5" height="5" rx="1"/><rect x="8" y="8" width="5" height="5" rx="1"/></svg>
+                Dashboard
+            </a>
+            <a class="nav-item {% if active_page == 'transactions' %}active{% endif %}" href="{% url 'transactions' %}">
+                <svg class="ni" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="2" width="12" height="10" rx="1.5"/><path d="M1 5h12M4 5v7"/></svg>
+                Transactions
+                <span class="nav-pill">3</span>
+            </a>
+            <a class="nav-item {% if active_page == 'recurring' %}active{% endif %}" href="{% url 'recurring' %}">
+                <svg class="ni" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="7" cy="7" r="5"/><path d="M7 4.5v2.5l1.5 1.5"/></svg>
+                Recurring
+            </a>
+            <a class="nav-item {% if active_page == 'analytics' %}active{% endif %}" href="{% url 'analytics' %}">
+                <svg class="ni" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 11L4.5 7l2.5 2.5L10 5l3 3"/></svg>
+                Analytics
+            </a>
+            <a class="nav-item {% if active_page == 'chat' %}active{% endif %}" href="{% url 'chat' %}">
+                <svg class="ni" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 2h9a1.5 1.5 0 011.5 1.5v5A1.5 1.5 0 0111.5 10H7l-3.5 2v-2H2.5A1.5 1.5 0 011 8.5v-5A1.5 1.5 0 012.5 2z"/><path d="M4 5.5h6M4 7.5h4"/></svg>
+                Chat
+            </a>
+            <a class="nav-item {% if active_page == 'budgets' %}active{% endif %}" href="{% url 'budgets' %}">
+                <svg class="ni" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="7" width="3" height="5" rx="0.5"/><rect x="5.5" y="4" width="3" height="8" rx="0.5"/><rect x="9" y="1.5" width="3" height="10.5" rx="0.5"/></svg>
+                Budgets
+            </a>
 
-    <!-- Main Content -->
-    <main>
-        {% block content %}
-        {% endblock %}
-    </main>
+            <div class="nav-group-label nav-group-accounts">Accounts</div>
+        </div>
 
-    <!-- Footer -->
-    <footer>
-        <p>&copy; {{ year|default:2026 }} SpenderTracker</p>
-    </footer>
+        <div class="accounts-section">
+            <div class="acc-card active">
+                <div class="acc-top">
+                    <div class="acc-pip gold-bg"></div>
+                    <div class="acc-name">N26 Checking</div>
+                </div>
+                <div class="acc-type">DEBIT · ••4521</div>
+                <div class="acc-row">
+                    <div class="acc-bal">€2,840</div>
+                    <div class="acc-delta pos">+€340</div>
+                </div>
+            </div>
 
-    <!-- Global Scripts -->
-    <script src="{% static 'js/script.js' %}"></script>
+            <div class="acc-card">
+                <div class="acc-top">
+                    <div class="acc-pip blue-bg"></div>
+                    <div class="acc-name">Revolut</div>
+                </div>
+                <div class="acc-type">SAVINGS · ••9933</div>
+                <div class="acc-row">
+                    <div class="acc-bal">€8,250</div>
+                    <div class="acc-delta pos">+€500</div>
+                </div>
+            </div>
 
-    <!-- Page-specific scripts -->
-    {% block extrascripts %}
-    {% endblock %}
+            <div class="acc-card">
+                <div class="acc-top">
+                    <div class="acc-pip orange-bg"></div>
+                    <div class="acc-name">Cash wallet</div>
+                </div>
+                <div class="acc-type">PHYSICAL</div>
+                <div class="acc-row">
+                    <div class="acc-bal">€120</div>
+                    <div class="acc-delta neg">−€80</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="add-btn">+ Add account</button>
+    </aside>
+
+    <div class="layout-col">
+        <header class="topbar">
+            <div class="topbar-l">
+                <div class="page-title">{% block page_title %}Dashboard{% endblock %}</div>
+                <div class="tabs">
+                    <div class="tab active">Overview</div>
+                    <div class="tab">This month</div>
+                    <div class="tab">All time</div>
+                </div>
+            </div>
+            <div class="topbar-r">
+                <button class="btn theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light and dark mode">
+                    <span id="theme-toggle-label">Light mode</span>
+                </button>
+                {% block topbar_actions %}
+                <button class="btn">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="1" width="10" height="10" rx="1.5"/><path d="M3 5.5l2 2 4-4"/></svg>
+                    Scan receipt
+                </button>
+                <button class="btn btn-gold">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#0C0C0E" stroke-width="1.5"><path d="M6 1v10M1 6h10"/></svg>
+                    Add expense
+                </button>
+                {% endblock %}
+            </div>
+        </header>
+
+        <main class="content-wrap">
+            <div class="content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</div>
+<a class="fab-receipt" href="{% url 'scan_receipt' %}" aria-label="Upload or take receipt photo">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M6 1v10M1 6h10"/>
+    </svg>
+</a>
+{% block extrascripts %}{% endblock %}
+<script>
+(() => {
+    const storageKey = "ledger-theme";
+    const root = document.documentElement;
+    const toggle = document.getElementById("theme-toggle");
+    const label = document.getElementById("theme-toggle-label");
+    if (!toggle || !label) return;
+
+    const applyTheme = (theme) => {
+        root.setAttribute("data-theme", theme);
+        label.textContent = theme === "light" ? "Dark mode" : "Light mode";
+    };
+
+    const savedTheme = localStorage.getItem(storageKey);
+    if (savedTheme === "light" || savedTheme === "dark") {
+        applyTheme(savedTheme);
+    } else {
+        applyTheme("dark");
+    }
+
+    toggle.addEventListener("click", () => {
+        const currentTheme = root.getAttribute("data-theme") === "light" ? "light" : "dark";
+        const nextTheme = currentTheme === "light" ? "dark" : "light";
+        localStorage.setItem(storageKey, nextTheme);
+        applyTheme(nextTheme);
+    });
+})();
+</script>
 </body>
 </html>

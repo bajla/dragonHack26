@@ -1,7 +1,252 @@
 {% extends 'base.html' %}
 
+{% block title %}Ledger | Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
 {% block content %}
-<div>
-    <p>Home</p>
+<div class="ticker">
+    <div class="tick-item">
+        <div class="tick-label">Net worth</div>
+        <div class="tick-val">€15,890</div>
+        <div class="tick-delta text-green">↑ +€1,240 MTD</div>
+    </div>
+    <div class="tick-sep"></div>
+    <div class="tick-item">
+        <div class="tick-label">Savings rate</div>
+        <div class="tick-val">38.75%</div>
+        <div class="tick-delta text-green">↑ +4.2pp</div>
+    </div>
+    <div class="tick-sep"></div>
+    <div class="tick-item">
+        <div class="tick-label">Monthly burn</div>
+        <div class="tick-val">€1,960</div>
+        <div class="tick-delta text-red">↑ +€240 vs last</div>
+    </div>
+    <div class="tick-sep"></div>
+    <div class="tick-item">
+        <div class="tick-label">Recurring total</div>
+        <div class="tick-val">€890</div>
+        <div class="tick-delta">5 active</div>
+    </div>
+    <div class="tick-sep"></div>
+    <div class="tick-item">
+        <div class="tick-label">Budget used</div>
+        <div class="tick-val">61%</div>
+        <div class="tick-delta">€1,240 left</div>
+    </div>
+</div>
+
+<div class="nw-hero">
+    <div>
+        <div class="nw-main-label">Total net worth · April 2025</div>
+        <div class="nw-amount"><span class="currency">€</span>15,890<span class="nw-decimal">.72</span></div>
+        <div class="nw-updated">4 accounts · last updated just now</div>
+    </div>
+    <div class="nw-line"></div>
+    <div class="nw-stat">
+        <div class="nw-stat-label">Income</div>
+        <div class="nw-stat-val pos">+€3,200</div>
+        <div class="nw-stat-sub">Apr salary</div>
+    </div>
+    <div class="nw-line"></div>
+    <div class="nw-stat">
+        <div class="nw-stat-label">Expenses</div>
+        <div class="nw-stat-val neg">−€1,960</div>
+        <div class="nw-stat-sub">61% of budget</div>
+    </div>
+    <div class="nw-line"></div>
+    <div class="nw-stat">
+        <div class="nw-stat-label">Saved</div>
+        <div class="nw-stat-val pos">+€1,240</div>
+        <div class="nw-stat-sub">38.7% rate</div>
+    </div>
+</div>
+
+<div class="ai-banner">
+    <div class="ai-marker">AI · insight</div>
+    <div class="ai-text">
+        Dining spend is <strong>34% above last month</strong> — driven by a new pattern: <strong>Specialty Coffee Shops</strong> (€87 · 11 visits, category auto-created).
+        Reducing cafe visits by 3x/week projects a <strong>+€38/month</strong> saving. Budget overage: Coffee category is <strong>€153 over limit</strong>.
+    </div>
+</div>
+
+<div class="grid-4">
+    <div class="mc">
+        <div class="mc-label">Budget health</div>
+        <div class="mc-val">61%</div>
+        <div class="mc-progress"><div class="mc-progress-fill"></div></div>
+        <div class="mc-sub">€1,240 remaining</div>
+    </div>
+    <div class="mc">
+        <div class="mc-label">Next recurring</div>
+        <div class="mc-val">Telekom</div>
+        <span class="mc-tag gold-dim text-gold">in 3 days · €39</span>
+        <div class="mc-sub">Apr 21 · N26</div>
+    </div>
+    <div class="mc">
+        <div class="mc-label">Needs review</div>
+        <div class="mc-val">3</div>
+        <span class="mc-tag red-dim text-red">AI flagged</span>
+        <div class="mc-sub">Unknown merchants</div>
+    </div>
+    <div class="mc">
+        <div class="mc-label">Categories created</div>
+        <div class="mc-val">2</div>
+        <span class="mc-tag blue-dim">by AI this month</span>
+        <div class="mc-sub">Specialty Coffee, Tram</div>
+    </div>
+</div>
+
+<div class="main-grid">
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">Spending breakdown</div>
+            <div class="panel-link">full analytics →</div>
+        </div>
+        <div class="panel-body">
+            <div class="cat-item">
+                <div class="cat-top">
+                    <div class="cat-name"><div class="cat-pip gold-bg"></div>Groceries & supermarkets</div>
+                    <div class="cat-amt">€706 / €800</div>
+                </div>
+                <div class="cat-track"><div class="cat-fill gold-bg" style="width:88%"></div></div>
+                <div class="cat-pct">88% of budget · on track</div>
+            </div>
+            <div class="cat-item">
+                <div class="cat-top">
+                    <div class="cat-name"><div class="cat-pip red-bg"></div>Specialty coffee shops</div>
+                    <div class="cat-amt text-red">€353 / €200</div>
+                </div>
+                <div class="cat-track"><div class="cat-fill" style="width:100%;background:#E05555"></div></div>
+                <div class="cat-pct text-red">176% — €153 over budget</div>
+            </div>
+            <div class="cat-item">
+                <div class="cat-top">
+                    <div class="cat-name"><div class="cat-pip blue-bg"></div>Public transport</div>
+                    <div class="cat-amt">€274 / €350</div>
+                </div>
+                <div class="cat-track"><div class="cat-fill blue-bg" style="width:78%"></div></div>
+                <div class="cat-pct">78% of budget · on track</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">Recent transactions</div>
+            <div class="panel-link">view all →</div>
+        </div>
+        <div class="panel-body panel-body-tight">
+            <div class="tx">
+                <div class="tx-ico">🛒</div>
+                <div class="tx-inf">
+                    <div class="tx-merch">Mercator d.d.</div>
+                    <div class="tx-meta">
+                        <div class="tx-cat-tag">Groceries · Fresh Produce</div>
+                        <div class="tx-date">Apr 17</div>
+                        <div class="tx-acc-dot gold-bg"></div>
+                    </div>
+                </div>
+                <div class="tx-amt deb">−€34.20</div>
+            </div>
+            <div class="tx tx-alert">
+                <div class="tx-ico">⚠</div>
+                <div class="tx-inf">
+                    <div class="tx-merch">Unknown · POS 8821</div>
+                    <div class="tx-meta">
+                        <div class="tx-cat-tag red-dim text-red">Needs review</div>
+                        <div class="tx-date">Apr 16</div>
+                        <div class="tx-acc-dot orange-bg"></div>
+                    </div>
+                </div>
+                <div class="tx-amt warn">−€22.00</div>
+            </div>
+            <div class="tx">
+                <div class="tx-ico">↑</div>
+                <div class="tx-inf">
+                    <div class="tx-merch">April salary</div>
+                    <div class="tx-meta">
+                        <div class="tx-cat-tag green-dim text-green">Income · Employment</div>
+                        <div class="tx-date">Apr 14</div>
+                        <div class="tx-acc-dot gold-bg"></div>
+                    </div>
+                </div>
+                <div class="tx-amt cre">+€3,200</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main-grid">
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">Recurring expenses</div>
+            <div class="panel-link">manage →</div>
+        </div>
+        <div class="panel-body panel-body-tight">
+            <div class="rc">
+                <div class="rc-ico">🏠</div>
+                <div class="rc-inf">
+                    <div class="rc-name">Rent</div>
+                    <div class="rc-cycle">MONTHLY · 1ST · N26</div>
+                </div>
+                <div class="rc-right">
+                    <div class="rc-amt">€680</div>
+                    <div class="rc-next text-muted">paid Apr 1</div>
+                </div>
+            </div>
+            <div class="rc">
+                <div class="rc-ico">📡</div>
+                <div class="rc-inf">
+                    <div class="rc-name">Internet · Telekom</div>
+                    <div class="rc-cycle">MONTHLY · 21ST · N26</div>
+                </div>
+                <div class="rc-right">
+                    <div class="rc-amt">€39</div>
+                    <div class="rc-next text-gold">in 3 days</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stack">
+        <div class="panel">
+            <div class="panel-head">
+                <div class="panel-title">Quick add expense</div>
+                <div class="mono mono-xs">
+                    <span class="pulse"></span>
+                    AI categorisation on
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="qa-fields">
+                    <div class="qa-field qa-field-wide">
+                        <div class="qa-label">Merchant</div>
+                        <input class="qa-input" type="text" placeholder="e.g. Mercator, Bolt ride...">
+                    </div>
+                    <div class="qa-field">
+                        <div class="qa-label">Amount</div>
+                        <input class="qa-input" type="text" placeholder="€ 0.00">
+                    </div>
+                    <div class="qa-field">
+                        <div class="qa-label">Account</div>
+                        <input class="qa-input" type="text" placeholder="N26 Checking">
+                    </div>
+                </div>
+                <div class="qa-hint">AI will categorise and create new categories if none match</div>
+                <div class="qa-btns">
+                    <button class="btn btn-flex">Save draft</button>
+                    <button class="btn btn-gold btn-flex">Add expense</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="scan-zone">
+            <div class="scan-ico">📸</div>
+            <div class="scan-title">Scan a receipt</div>
+            <div class="scan-sub">Drop an image or photograph a receipt. AI extracts every line item and amount automatically.</div>
+            <button class="btn scan-btn">Open camera / upload</button>
+        </div>
+    </div>
 </div>
 {% endblock %}
