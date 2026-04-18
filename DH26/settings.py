@@ -78,6 +78,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'DH26.wsgi.application'
 
+# Root media folder in which uploaded files will be saved
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
