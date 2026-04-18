@@ -26,6 +26,7 @@ class ItemTransaction(models.Model):
     date = models.DateField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     merchant = models.CharField(max_length=100, blank=True, null=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
 
 class ScheduleExpense(models.Model):
     title = models.CharField(max_length=100)

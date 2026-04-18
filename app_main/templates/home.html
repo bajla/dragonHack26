@@ -1,7 +1,82 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
 <div>
-    <p>Home</p>
+    <form id="uploadForm" method="POST" enctype="multipart/form-data" action="{% url 'process_receipt_image' %}">
+        {% csrf_token %}
+        <input type="file" id="imageInput" name="image" accept="image/*" capture="environment">
+        <button type="submit">Upload</button>
+    </form>
+    <form method="POST" enctype="multipart/form-data" action="{% url 'process_receipt_image' %}">
+        {% csrf_token %}
+        <input type="file" id="videoInput" name="video" accept="video/*" capture="environment">
+        <button type="submit">Upload</button>
+    </form>
 </div>
+{% endblock %}
+
+{% block extrascripts %}
+<script>
+document.getElementById("uploadForm").addEventListener("submit", async function(e) {
+    const fileInput = document.getElementById("imageInput");
+    const file = fileInput.files[0];
+
+    if (!file) return;
+
+    // Only compress images
+    if (!file.type.startsWith("image/")) return;
+
+    e.preventDefault();
+
+    const compressedBlob = await compressImage(file, 0.6); // quality 0.0–1.0
+    const compressedFile = new File([compressedBlob], file.name, {
+        type: "image/jpeg"
+    });
+
+    const formData = new FormData(this);
+    formData.set("image", compressedFile);
+
+    fetch(this.action, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    }).then(res => res.text())
+      .then(data => {
+          document.body.innerHTML = data;
+      });
+});
+
+function compressImage(file, quality) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        const reader = new FileReader();
+
+        reader.onload = e => img.src = e.target.result;
+        reader.readAsDataURL(file);
+
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const maxWidth = 1024;
+
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+                height *= maxWidth / width;
+                width = maxWidth;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(blob => resolve(blob), "image/jpeg", quality);
+        };
+    });
+}
+</script>
 {% endblock %}
