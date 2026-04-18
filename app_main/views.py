@@ -2,6 +2,7 @@ from django.db.models.aggregates import Sum
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from datetime import datetime
+from bson import ObjectId
 from google.genai import types
 from google import genai
 
@@ -32,14 +33,37 @@ def home(request):
     context['balance'] = balance
     return render(request, 'home.html', context)
 
+@login_required
+def delete_transaction_receipt(request, receipt_id):
+    object_id = ObjectId(receipt_id)
+    receipt = ReceiptTransaction.objects.get(id=object_id)
+    receipt.delete()
+    
+    pass
 
 @login_required
 def transactions(request):
     context = {}
     context['active_page'] = "transactions"
     curr_user = request.user
-    transactions = ItemTransaction.objects.filter(user=curr_user)
-    context['transactions'] = transactions
+    
+    transaction_data = []
+    receipts = ReceiptTransaction.objects.filter(user=curr_user)
+    for receipt in receipts:  
+        linked_items = receipt.itemtransaction_set.all()
+        if linked_items:
+            receipt_date = linked_items[0].date
+            receipt_merchat = linked_items[0].merchant
+            
+            transaction_data.append({'transaction_date':receipt_date, 'transaction_merchant': receipt_merchat, 'item_list': linked_items, 'receipt_id': str(receipt.id)})
+            
+    items = ItemTransaction.objects.filter(user=curr_user, receipt=None)
+    for item in items:
+        transaction_data.append({'transaction_date':item.date, 'item': item })
+        
+    transaction_data.sort(key=lambda x: x["transaction_date"], reverse=True)
+
+    context['transaction_data'] = transaction_data
     return render(request, 'transactions.html', context)
 
 
