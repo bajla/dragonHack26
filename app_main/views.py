@@ -249,14 +249,11 @@ def add_money(request):
 
 @login_required
 def submit_money(request):
-    if request.POST.get("description") == None:
-        IncomeTransaction.object.create(user=request.user,
-                                        type=request.POST.get("type"),
-                                        amount=request.POST.get("amount"))
-    else:
-        IncomeTransaction.object.create(user=request.user,
-                                type=request.POST.get("type"),
-                                amount=request.POST.get("amount"),
-                                description=request.POST.get("description"))
+    curr_description = request.POST.get("description", "").strip()
+
+    IncomeTransaction.object.create(user=request.user,
+                            type=request.POST.get("type"),
+                            amount=request.POST.get("amount"),
+                            description=curr_description or None)
 
     return render(request, 'home.html', {"active_page": "dashboard"})
