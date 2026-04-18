@@ -7,11 +7,15 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
+from django.http import HttpResponse
+from io import BytesIO
 from .models import ReceiptTransaction, Category, ItemTransaction
 
 from DH26 import settings
 
 import json
+# :P
+import pandas
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
@@ -155,3 +159,35 @@ def register(request):
     # ~ date = models.DateField()
     # ~ category = models.ForeignKey(Category, on_delete=models.CASCADE)
     # ~ merchant = models.CharField(max_length=100, blank=True, null=True)
+
+
+@login_required
+def export_transactions(request):
+
+    with open('inputTest1.json', 'r') as f:
+        jsonData = json.load(f)
+
+    structuredJSON = []
+
+    for recieptTransaction in jsonData["receipt_transactions"]:
+        for itemTransaction in recieptTransaction["item_transactions"]:
+            newItem = {
+                "user": itemTransaction["user"],
+                "date": itemTransaction["date"],
+                "cost": itemTransaction["cost"],
+                "quantity": itemTransaction["quantity"],
+                "category": itemTransaction["category"]["title"],
+            }
+            structuredJSON.append(newItem)
+
+    dataFrame = pandas.json_normalize(structuredJSON)
+    buffer = BytesIO()
+    dataFrame.to_excel(buffer, index=False)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="transactions.xlsx"'
+    return response

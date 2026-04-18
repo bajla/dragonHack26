@@ -40,4 +40,12 @@
         </div>
     </div>
 </div>
+
+<div style="margin-top: 2rem;">
+    <form action="{% url 'export_transactions' %}" method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-gold btn-flex">Export data</button>
+    </form>
+</div>
+
 {% endblock %}
