@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation
+from io import BytesIO
 
 from django.db.models.aggregates import Sum
 from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
@@ -19,6 +20,7 @@ from .tasks import receipt_image_background_process
 from DH26 import settings
 
 import json
+import pandas
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
@@ -547,3 +549,113 @@ def get_history(request):
 
 def save_history(request, history):
     request.session["chat_history"] = history
+
+
+@login_required
+def export_to_excel(request):
+    rows = list(
+        ItemTransaction.objects.filter(user=request.user)
+        .select_related("category", "budget", "receipt")
+        .order_by("-date")
+        .values(
+            "date",
+            "name",
+            "merchant",
+            "cost",
+            "quantity",
+            "category__title",
+            "receipt_id",
+        )
+    )
+
+    structured_rows = [
+        {
+            "date": row["date"].strftime("%Y-%m-%d") if row["date"] else "",
+            "name": row["name"],
+            "merchant": row["merchant"],
+            "cost": row["cost"],
+            "quantity": row["quantity"],
+            "category": row["category__title"],
+            "receipt_id": str(row["receipt_id"]) if row["receipt_id"] else "",
+        }
+        for row in rows
+    ]
+
+    data_frame = pandas.DataFrame(
+        structured_rows,
+        columns=[
+            "date",
+            "name",
+            "merchant",
+            "cost",
+            "quantity",
+            "category",
+            "receipt_id",
+        ],
+    )
+
+    output = BytesIO()
+    data_frame.to_excel(output, index=False)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="transactions.xlsx"'
+    return response
+
+
+@login_required
+def export_to_json(request):
+    rows = list(
+        ItemTransaction.objects.filter(user=request.user)
+        .select_related("category", "budget", "receipt")
+        .order_by("-date")
+        .values(
+            "date",
+            "name",
+            "merchant",
+            "cost",
+            "quantity",
+            "category__title",
+            "receipt_id",
+        )
+    )
+
+    structured_rows = [
+        {
+            "date": row["date"].strftime("%Y-%m-%d") if row["date"] else "",
+            "name": row["name"],
+            "merchant": row["merchant"],
+            "cost": row["cost"],
+            "quantity": row["quantity"],
+            "category": row["category__title"],
+            "receipt_id": str(row["receipt_id"]) if row["receipt_id"] else "",
+        }
+        for row in rows
+    ]
+
+    data_frame = pandas.DataFrame(
+        structured_rows,
+        columns=[
+            "date",
+            "name",
+            "merchant",
+            "cost",
+            "quantity",
+            "category",
+            "receipt_id",
+        ],
+    )
+
+    output = BytesIO()
+    data_frame.to_json(output, index=False)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/json"    
+        )
+    response["Content-Disposition"] = 'attachment; filename="transactions.json"'
+    return response
