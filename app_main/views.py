@@ -202,6 +202,8 @@ def register(request):
 
 @login_required
 def quick_add_item(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
 
     curr_category = request.POST.get("category")
     curr_category = Category.objects.get(title=curr_category)
@@ -220,6 +222,9 @@ def add_expense(request):
 
 @login_required
 def submit_expense(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
     receipt_merchant = request.POST.get("merchant")
     
     receipt_obj = ReceiptTransaction.objects.create(user=request.user,
@@ -249,11 +254,21 @@ def add_money(request):
 
 @login_required
 def submit_money(request):
-    curr_description = request.POST.get("description", "").strip()
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
 
+    curr_description = request.POST.get("description", "")
+    account_id = request.POST.get("account", "")
+    curr_account = None
+    if account_id:
+        curr_account = Account.objects.filter(pk=account_id, user=request.user).first()
+        if curr_account is None:
+            return JsonResponse({"error": "Invalid account"}, status=400)
+        
     IncomeTransaction.objects.create(user=request.user,
-                                    type=request.POST.get("type"),
-                                    amount=request.POST.get("amount"),
-                                    description=curr_description or None)
+                                    type=request.POST.get("type", ""),
+                                    amount=request.POST.get("amount", ""),
+                                    description=curr_description or None,
+                                    account=curr_account)
 
-    return render(request, 'home.html', {"active_page": "dashboard"})
+    return redirect("dashboard")
