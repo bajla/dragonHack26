@@ -1,8 +1,11 @@
 from decimal import Decimal, InvalidOperation
 
+from django.db.models import Q
 from django.db.models.aggregates import Sum
 from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from django.shortcuts import render, redirect
+from django.utils import timezone
+import calendar
 from datetime import datetime
 from bson import ObjectId
 from google.genai import types
@@ -137,6 +140,7 @@ def transactions(request):
             transaction_data.append({'transaction_date':receipt_date, 'transaction_merchant': receipt_merchat, 'item_list': linked_items, 'receipt_id': str(receipt.id)})
 
     items = ItemTransaction.objects.filter(user=curr_user, receipt=None)
+    
     for item in items:
         transaction_data.append({'transaction_date':item.date, 'item': item })
 
@@ -181,7 +185,79 @@ def analytics(request):
 
 @login_required
 def budgets(request):
-    return render(request, 'budgets.html', {"active_page": "budgets"})
+    context = {"active_page": "budgets"}
+    categories = Category.objects.all().order_by("title")
+    budgets = Budget.objects.filter(user=request.user)
+    context['categories'] = categories
+    context['budgets'] = budgets
+    return render(
+        request,
+        "budgets.html",
+        context,
+    )
+
+
+def _category_and_descendant_ids(category):
+    """PKs of this category and every nested subcategory (recursive children)."""
+    ids = [category.pk]
+    for child in Category.objects.filter(parent=category):
+        ids.extend(_category_and_descendant_ids(child))
+    return ids
+
+
+@login_required
+def add_budget(request):
+    if request.method != "POST":
+        return redirect("budgets")
+    title = (request.POST.get("title") or "").strip()
+    limit_raw = request.POST.get("limit")
+    category_id = request.POST.get("category")
+    if not title or limit_raw in (None, "") or not category_id:
+        return redirect("budgets")
+    try:
+        limit_val = Decimal(str(limit_raw).replace(",", "."))
+    except (InvalidOperation, ValueError):
+        return redirect("budgets")
+    try:
+        cat = Category.objects.get(pk=category_id)
+    except Category.DoesNotExist:
+        return redirect("budgets")
+
+    # Same calendar month as today (user's active timezone).
+    # Include: this category + all subcategories (recursive), plus any Category row with the same title (not id).
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+    last_day = calendar.monthrange(today.year, today.month)[1]
+    month_end = today.replace(day=last_day)
+
+    tree_ids = _category_and_descendant_ids(cat)
+    title_ids = Category.objects.filter(title=cat.title).values_list("pk", flat=True)
+    category_ids = list(set(tree_ids) | set(title_ids))
+
+    spent = (
+        ItemTransaction.objects.filter(
+            user=request.user,
+            date__gte=month_start,
+            date__lte=month_end,
+        )
+        .filter(
+            Q(category_id__in=category_ids)
+            | Q(subcategory_id__in=category_ids)
+        )
+        .aggregate(total=Sum("cost"))["total"]
+    )
+    balance_val = Decimal(str(spent)) if spent is not None else Decimal("0.00")
+    balance_val = balance_val.quantize(Decimal("0.01"))
+
+    Budget.objects.create(
+        user=request.user,
+        title=title,
+        limit=limit_val,
+        balance=balance_val,
+        category=cat,
+    )
+
+    return redirect("budgets")
 
 
 @login_required
@@ -404,13 +480,19 @@ def process_receipt_image(request):
     # ~ with open(new_receipt.file.path, "rb") as f:
         # ~ image_bytes = f.read()
     
-    # ~ existing_categories = Category.objects.all().values('title')
+    # ~ existing_categories = Category.objects.filter(parent__isnull=True).values('title')
     # ~ categories_string = json.dumps(list(existing_categories), indent=2, cls=DjangoJSONEncoder)
+    
+    # ~ existing_subcategories = Category.objects.filter(parent__isnull=False).values('title')
+    # ~ subcategories_string = json.dumps(list(existing_subcategories), indent=2, cls=DjangoJSONEncoder)
     
     # ~ prompt_text = (
         # ~ "Extract date, merchant, name, cost, quantity and pick a category from "
-       # ~ + categories_string
+       # ~ + categories_string 
+       # ~ + " and pick an existing super specific subcategory from "
+       # ~ + subcategories_string
        # ~ + "if it fits to any of them, otherwise create a new one."
+       # ~ + "A subcategory has to be very specific like type of bread or drink."
        # ~ + " in json format in english in this order, named lower case."
        # ~ + "Add a field 'existing category'"
        # ~ + "and put True if you picked from list and False if you made a new one."
@@ -436,10 +518,10 @@ def process_receipt_image(request):
         # ~ ]
     
     # ~ response = client.models.generate_content(
-        # ~ model="gemini-3-flash-preview",
+        # ~ model="gemini-3.1-flash-lite-preview",
         # ~ contents=prompt_contents
     # ~ )
-
+    
     # ~ clean_content = response.text.replace("```json", "").replace("```", "").strip()
     # ~ data = json.loads(clean_content)
     # ~ for item in data:
@@ -451,6 +533,12 @@ def process_receipt_image(request):
         # ~ else:
             # ~ curr_category = Category.objects.create(title=item['category'])
         
+        # ~ curr_subcategory = Category.objects.filter(parent=curr_category, title=item['subcategory'])
+        # ~ if curr_subcategory:
+            # ~ curr_subcategory = curr_subcategory[0]
+        # ~ else:
+            # ~ curr_subcategory = Category.objects.create(title=item['subcategory'], parent=curr_category)
+        
         # ~ new_item = ItemTransaction.objects.create(user=curr_user,
                                                   # ~ receipt=new_receipt,
                                                   # ~ cost=item['cost'],
@@ -458,7 +546,8 @@ def process_receipt_image(request):
                                                   # ~ date=item_dt,
                                                   # ~ category=curr_category,
                                                   # ~ merchant=item['merchant'],
-                                                  # ~ name=item['name']
+                                                  # ~ name=item['name'],
+                                                  # ~ subcategory=curr_subcategory
                                                 # ~ )
     return render(request, 'home.html', {"active_page": "dashboard"})
 
@@ -494,13 +583,25 @@ def quick_add_item(request):
 
     curr_category = request.POST.get("category")
     curr_category = Category.objects.get(title=curr_category)
-
-    ItemTransaction.objects.create(user=request.user,
+    
+    new_item = ItemTransaction.objects.create(user=request.user,
                                    cost=request.POST.get("cost"),
                                    quantity=request.POST.get("quantity"),
                                    category=curr_category,
                                    merchant=request.POST.get("merchant"),
-                                   name=request.POST.get("name"))
+                                   name=request.POST.get("name"),
+                                   date=timezone.localdate())
+
+    cat = new_item.category
+    budgets = Budget.objects.filter(user=request.user, category__title=cat.title)
+    if budgets:
+        for budget in budgets:
+            budget.balance += Decimal(new_item.cost)
+            budget.save()
+    if cat.parent:
+        cat.parent.budget += Decimal(new_item.cost)
+        cat.parent.save()
+
     return render(request, 'home.html', {"active_page": "dashboard"})
 
 @login_required
@@ -522,13 +623,25 @@ def submit_expense(request):
         curr_category = request.POST.get(f"item_category{i}")
         curr_category = Category.objects.get(title=curr_category)
 
-        ItemTransaction.objects.create(user=request.user,
+        new_item = ItemTransaction.objects.create(user=request.user,
                                    cost=request.POST.get(f"item_cost{i}"),
                                    quantity=request.POST.get(f"item_quantity{i}"),
                                    category=curr_category,
                                    merchant=receipt_merchant,
+                                   date=timezone.localdate(),
                                    receipt=receipt_obj,
                                    name=request.POST.get(f"item_name{i}"))
+
+        cat = new_item.category
+        budgets = Budget.objects.filter(user=request.user, category__title=cat.title)
+        if budgets:
+            for budget in budgets:
+                budget.balance += Decimal(new_item.cost)
+                budget.save()
+        if cat.parent:
+            cat.parent.budget += Decimal(new_item.cost)
+            cat.parent.save()
+
         i += 1
 
 

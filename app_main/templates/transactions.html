@@ -48,7 +48,7 @@
         <div class="tx">
             <div class="tx-inf">
                 <div class="tx-merch">{{ transaction.item.name }}</div>
-                <div class="tx-meta"><div class="tx-cat-tag">{{ transaction.item.merchant }}</div><div class="tx-date">Apr 17</div></div>
+                <div class="tx-meta"><div class="tx-cat-tag">{{ transaction.item.merchant }}</div><div class="tx-date">{{ transaction.item.date }}</div></div>
             </div>
             <div class="tx-actions">
                 <div class="tx-amt deb">−€{{ transaction.item.cost|floatformat:2 }}</div>
