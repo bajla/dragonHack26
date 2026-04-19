@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from django.db.models.aggregates import Sum
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
@@ -257,7 +259,18 @@ def submit_money(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
 
-    curr_description = request.POST.get("description", "")
+    curr_description = request.POST.get("description", "").strip()
+    curr_type = request.POST.get("type", "").strip()
+    amount_raw = request.POST.get("amount", "").strip()
+
+    if not curr_type or not amount_raw:
+        return JsonResponse({"error": "Amount and type are required"}, status=400)
+
+    try:
+        curr_amount = Decimal(amount_raw)
+    except (InvalidOperation, TypeError):
+        return JsonResponse({"error": "Invalid amount"}, status=400)
+
     account_id = request.POST.get("account", "")
     curr_account = None
     if account_id:
@@ -266,9 +279,13 @@ def submit_money(request):
             return JsonResponse({"error": "Invalid account"}, status=400)
         
     IncomeTransaction.objects.create(user=request.user,
-                                    type=request.POST.get("type", ""),
-                                    amount=request.POST.get("amount", ""),
+                                    type=curr_type,
+                                    amount=curr_amount,
                                     description=curr_description or None,
                                     account=curr_account)
+    
+    if curr_account is not None:
+        curr_account.balance += curr_amount
+        curr_account.save(update_fields=["balance"])
 
     return redirect("dashboard")
