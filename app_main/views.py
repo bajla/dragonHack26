@@ -944,20 +944,16 @@ def assign_item_account(request):
 
 @login_required
 def process_receipt_image(request):
-   
-    uploaded_file = None
+    uploaded_file = request.FILES['file']
     is_Image = False
+    filetype = request.POST['filetype']
+    
+    if filetype == 'image':
+        is_Image = True
     
     account_id = ''
     if 'account' in request.POST:
        account_id = request.POST['account']
-       
-    
-    if 'image' in request.FILES:
-        uploaded_file = request.FILES['image']
-        is_Image = True
-    else:
-        uploaded_file = request.FILES['video']
      
     curr_user = request.user   
     context = {}
