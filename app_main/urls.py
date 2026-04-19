@@ -25,4 +25,6 @@ urlpatterns = [
     path('delete-transaction-item/<str:item_id>', views.delete_transaction_item, name="delete-transaction-item"),
     path('edit-transaction-item/<str:item_id>', views.edit_transaction_item, name="edit-transaction-item"),
     path('edit-item/', views.edit_item, name="edit_item"),
+    path('submit-money/', views.submit_money, name="submit_money"),
 ]
+

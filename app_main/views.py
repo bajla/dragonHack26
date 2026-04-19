@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from django.db.models.aggregates import Sum
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
@@ -10,7 +12,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import ReceiptTransaction, Category, ItemTransaction, Account, ScheduleExpense
+from .models import ReceiptTransaction, Category, ItemTransaction, Account, IncomeTransaction, ScheduleExpense
 
 from .tasks import receipt_image_background_process
 
@@ -41,14 +43,14 @@ def delete_transaction_receipt(request, receipt_id):
     receipt = ReceiptTransaction.objects.get(id=object_id)
     receipt.delete()
     return redirect("transactions")
-    
+
 @login_required
 def delete_transaction_item(request, item_id):
     object_id = ObjectId(item_id)
     item = ItemTransaction.objects.get(id=object_id)
     item.delete()
     return redirect("transactions")
-    
+
 @login_required
 def edit_transaction_item(request, item_id):
     object_id = ObjectId(item_id)
@@ -86,7 +88,7 @@ def edit_item(request):
         item.category = Category.objects.get(title=new_category)
     if new_date:
         item.date = new_date
-    
+
     item.save()
     del request.session["editing_item_id"]
     return redirect("transactions")
@@ -102,21 +104,21 @@ def transactions(request):
     context = {}
     context['active_page'] = "transactions"
     curr_user = request.user
-    
+
     transaction_data = []
     receipts = ReceiptTransaction.objects.filter(user=curr_user)
-    for receipt in receipts:  
+    for receipt in receipts:
         linked_items = receipt.itemtransaction_set.all()
         if linked_items:
             receipt_date = linked_items[0].date
             receipt_merchat = linked_items[0].merchant
-            
+
             transaction_data.append({'transaction_date':receipt_date, 'transaction_merchant': receipt_merchat, 'item_list': linked_items, 'receipt_id': str(receipt.id)})
-            
+
     items = ItemTransaction.objects.filter(user=curr_user, receipt=None)
     for item in items:
         transaction_data.append({'transaction_date':item.date, 'item': item })
-        
+
     transaction_data.sort(key=lambda x: x["transaction_date"], reverse=True)
 
     context['transaction_data'] = transaction_data
@@ -132,7 +134,7 @@ def recurring(request):
     curr_user = request.user
     context['accounts'] = Account.objects.filter(user=curr_user)
     reccuring_expenses = ScheduleExpense.objects.filter(user=curr_user)
-    
+
     context['reccuring_expenses'] = reccuring_expenses
     return render(request, 'recurring.html', context)
 
@@ -176,7 +178,7 @@ def add_account(request):
         title = data.get("title", "").strip()
         description = data.get("description", "").strip()
         balance = data.get("balance")
-        
+
         if not title or balance is None:
             return JsonResponse({"error": "Invalid input"}, status=400)
         balance = float(balance)
@@ -301,6 +303,8 @@ def register(request):
 
 @login_required
 def quick_add_item(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
 
     curr_category = request.POST.get("category")
     curr_category = Category.objects.get(title=curr_category)
@@ -319,6 +323,9 @@ def add_expense(request):
 
 @login_required
 def submit_expense(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
     receipt_merchant = request.POST.get("merchant")
     
     receipt_obj = ReceiptTransaction.objects.create(user=request.user,
@@ -344,4 +351,40 @@ def submit_expense(request):
 
 @login_required
 def add_money(request):
-    return render(request, 'home.html', {"active_page": "dashboard"})
+    return render(request, 'add_money.html', {"active_page": "add_money"})
+
+@login_required
+def submit_money(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    curr_description = request.POST.get("description", "").strip()
+    curr_type = request.POST.get("type", "").strip()
+    amount_raw = request.POST.get("amount", "").strip()
+
+    if not curr_type or not amount_raw:
+        return JsonResponse({"error": "Amount and type are required"}, status=400)
+
+    try:
+        curr_amount = Decimal(amount_raw)
+    except (InvalidOperation, TypeError):
+        return JsonResponse({"error": "Invalid amount"}, status=400)
+
+    account_id = request.POST.get("account", "")
+    curr_account = None
+    if account_id:
+        curr_account = Account.objects.filter(pk=account_id, user=request.user).first()
+        if curr_account is None:
+            return JsonResponse({"error": "Invalid account"}, status=400)
+
+    IncomeTransaction.objects.create(user=request.user,
+                                    type=curr_type,
+                                    amount=curr_amount,
+                                    description=curr_description or None,
+                                    account=curr_account)
+
+    if curr_account is not None:
+        curr_account.balance += curr_amount
+        curr_account.save(update_fields=["balance"])
+
+    return redirect("dashboard")

@@ -4,3 +4,4 @@ from .models import *
 admin.site.register(Category)
 admin.site.register(Account)
 admin.site.register(ItemTransaction)
+admin.site.register(IncomeTransaction)
