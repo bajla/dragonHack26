@@ -53,6 +53,7 @@ class ScheduleExpense(models.Model):
 
     TYPE_OF_EXPENSE = (
         ("DAILY", "Daily"),
+        ("WEEKLY", "Weekly"),
         ("MONTHLY", "Monthly"),
         ("YEARLY", "Yearly")
     )

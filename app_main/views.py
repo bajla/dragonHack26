@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 from django.db.models import Q
 from django.db.models.aggregates import Sum
 from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 import calendar
 from datetime import datetime
@@ -58,6 +58,7 @@ def home(request):
     context["budget_has_limits"] = total_budget_limit > 0
     context["budget_remaining_abs"] = abs(budget_remaining)
 
+    context['recurring_expenses'] = ScheduleExpense.objects.filter(user=request.user)
     return render(request, 'home.html', context)
 
 
@@ -119,10 +120,6 @@ def edit_item(request):
 
 
 
-
-
-
-
 @login_required
 def transactions(request):
     context = {}
@@ -140,7 +137,7 @@ def transactions(request):
             transaction_data.append({'transaction_date':receipt_date, 'transaction_merchant': receipt_merchat, 'item_list': linked_items, 'receipt_id': str(receipt.id)})
 
     items = ItemTransaction.objects.filter(user=curr_user, receipt=None)
-    
+
     for item in items:
         transaction_data.append({'transaction_date':item.date, 'item': item })
 
@@ -153,30 +150,110 @@ def transactions(request):
 @login_required
 def recurring(request):
     context = {}
-    context['active_page'] = "reccuring"
+    context['active_page'] = "recurring"
     types = ScheduleExpense.TYPE_OF_EXPENSE
     context['expense_types'] = types
     curr_user = request.user
     context['accounts'] = Account.objects.filter(user=curr_user)
-    reccuring_expenses = ScheduleExpense.objects.filter(user=curr_user)
+    recurring_expenses = ScheduleExpense.objects.filter(user=curr_user)
 
-    context['reccuring_expenses'] = reccuring_expenses
+    context['recurring_expenses'] = recurring_expenses
     return render(request, 'recurring.html', context)
 
 
 @login_required
-def create_reccuring(request):
-    context = {}
-    reccuring_title = request.POST['title']
-    reccuring_cost = request.POST['cost']
-    reccuring_type = request.POST['type']
-    curr_user = request.user
-    new_scheduled_expense = ScheduleExpense.objects.create(title=reccuring_title,
-                                                           user=curr_user,
-                                                           cost=reccuring_cost,
-                                                           type=reccuring_type,
-                                                          )
-    return HttpResponse(200)
+def create_recurring_item(request):
+    return render(request, 'create_recurring.html', {"active_page": "create_recurring"})
+
+
+@login_required
+def create_recurring(request):
+    if request.method != "POST":
+        return redirect("recurring")
+
+    recurring_user = request.user
+    recurring_title = (request.POST.get("title") or "").strip()
+    recurring_cost = request.POST.get("cost")
+    recurring_type = request.POST.get("type")
+    recurring_account_id = request.POST.get("account")
+    recurring_account = None
+    valid_types = {choice[0] for choice in ScheduleExpense.TYPE_OF_EXPENSE}
+
+    if not recurring_title or not recurring_cost or recurring_type not in valid_types:
+        return redirect("recurring")
+
+    if recurring_account_id:
+        recurring_account = get_object_or_404(Account, pk=recurring_account_id, user=recurring_user)
+
+    ScheduleExpense.objects.create(
+        user=recurring_user,
+        title=recurring_title,
+        cost=recurring_cost,
+        type=recurring_type,
+        account=recurring_account,
+    )
+    return redirect("recurring")
+
+
+
+@login_required
+def delete_recurring_item(request, rec_id):
+    if request.method not in {"POST", "GET"}:
+        return redirect("recurring")
+
+    rec = get_object_or_404(ScheduleExpense, pk=rec_id, user=request.user)
+    rec.delete()
+    return redirect("recurring")
+
+@login_required
+def edit_recurring_item(request, rec_id):
+    rec = get_object_or_404(ScheduleExpense, pk=rec_id, user=request.user)
+    request.session["editing_recurring_id"] = rec_id
+    return render(
+        request,
+        'edit_recurring.html',
+        {
+            "active_page": "recurring",
+            "rec": rec,
+            "accounts": Account.objects.filter(user=request.user),
+            "expense_types": ScheduleExpense.TYPE_OF_EXPENSE,
+        },
+    )
+
+@login_required
+def edit_recurring(request):
+    rec_id = request.session.get("editing_recurring_id")
+    if not rec_id:
+        return redirect("recurring")
+    if request.method != "POST":
+        return redirect("edit_recurring_item", rec_id=rec_id)
+
+    rec = get_object_or_404(ScheduleExpense, pk=rec_id, user=request.user)
+
+    new_title = request.POST.get("title")
+    new_cost = request.POST.get("cost")
+    new_type = request.POST.get("type")
+    new_account_id = request.POST.get("account")
+    new_account = None
+
+    if new_account_id:
+        new_account = get_object_or_404(Account, pk=new_account_id, user=request.user)
+
+    if new_title is not None:
+        rec.title = new_title
+    if new_cost is not None:
+        rec.cost = new_cost
+    if new_type is not None:
+        rec.type = new_type
+    if new_account_id is not None:
+        rec.account = new_account
+
+    rec.save()
+    del request.session["editing_recurring_id"]
+
+    return redirect("recurring")
+
+
 
 @login_required
 def analytics(request):
@@ -485,10 +562,10 @@ def process_receipt_image(request):
     
     # ~ existing_subcategories = Category.objects.filter(parent__isnull=False).values('title')
     # ~ subcategories_string = json.dumps(list(existing_subcategories), indent=2, cls=DjangoJSONEncoder)
-    
+
     # ~ prompt_text = (
         # ~ "Extract date, merchant, name, cost, quantity and pick a category from "
-       # ~ + categories_string 
+       # ~ + categories_string
        # ~ + " and pick an existing super specific subcategory from "
        # ~ + subcategories_string
        # ~ + "if it fits to any of them, otherwise create a new one."
@@ -521,7 +598,7 @@ def process_receipt_image(request):
         # ~ model="gemini-3.1-flash-lite-preview",
         # ~ contents=prompt_contents
     # ~ )
-    
+
     # ~ clean_content = response.text.replace("```json", "").replace("```", "").strip()
     # ~ data = json.loads(clean_content)
     # ~ for item in data:
@@ -538,7 +615,7 @@ def process_receipt_image(request):
             # ~ curr_subcategory = curr_subcategory[0]
         # ~ else:
             # ~ curr_subcategory = Category.objects.create(title=item['subcategory'], parent=curr_category)
-        
+
         # ~ new_item = ItemTransaction.objects.create(user=curr_user,
                                                   # ~ receipt=new_receipt,
                                                   # ~ cost=item['cost'],
@@ -583,7 +660,7 @@ def quick_add_item(request):
 
     curr_category = request.POST.get("category")
     curr_category = Category.objects.get(title=curr_category)
-    
+
     new_item = ItemTransaction.objects.create(user=request.user,
                                    cost=request.POST.get("cost"),
                                    quantity=request.POST.get("quantity"),

@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import ReceiptTransaction, Category, ItemTransaction, Budget
+from .models import ReceiptTransaction, Category, ItemTransaction, Budget, ScheduleExpense
 
 from DH26 import settings
 
@@ -33,7 +33,7 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
     
     existing_subcategories = Category.objects.filter(parent__isnull=False).values('title')
     subcategories_string = json.dumps(list(existing_subcategories), indent=2, cls=DjangoJSONEncoder)
-    
+
     prompt_text = (
         "Extract date, merchant, name, cost, quantity and pick a category from "
        + categories_string
@@ -41,11 +41,11 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
        + subcategories_string
        + "if it fits to any of them, otherwise create a new one."
        + "A subcategory has to be very specific like type of bread or drink."
-       + " It should be an array of jsons for each item with string keys, items translated to english, named lower case." 
+       + " It should be an array of jsons for each item with string keys, items translated to english, named lower case."
        + "Convert money to euro, divide each item. The date is at the bottom of the receipt."
        + "Under date shoud be stored in a %Y-%m-%d format for strptime, the fields should be empty if no information present"
     )
-    
+
     prompt_contents = None
     if is_Image:
         prompt_contents = [
@@ -85,7 +85,7 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
             curr_subcategory = curr_subcategory[0]
         else:
             curr_subcategory = Category.objects.create(title=item['subcategory'], parent=curr_category)
-        
+
         new_item = ItemTransaction.objects.create(user=curr_user,
                                                   receipt=new_receipt,
                                                   cost=item['cost'],
@@ -105,3 +105,34 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
         if cat.parent:
             cat.parent.budget += Decimal(new_item.cost)
             cat.parent.save()
+
+@celery_app.task(name="update_scheduled_expenses")
+def update_scheduled_expenses():
+    scheduled_expenses = ScheduleExpense.objects.filter(type="DAILY")
+    for expense in scheduled_expenses:
+        account = scheduled_expenses.account
+        new_balance = account.balance - expense.cost
+        account.update(balance=new_balance)
+
+    if datetime.now.weekday() == 0:
+        scheduled_expenses = ScheduleExpense.objects.filter(type="WEEKLY")
+        for expense in scheduled_expenses:
+            account = scheduled_expenses.account
+            new_balance = account.balance - expense.cost
+            account.update(balance=new_balance)
+
+    if timezone.now().day == 1:
+        scheduled_expenses = ScheduleExpense.objects.filter(type="MONTHLY")
+        for expense in scheduled_expenses:
+            account = scheduled_expenses.account
+            new_balance = account.balance - expense.cost
+            account.update(balance=new_balance)
+
+    if timezone.now().day == 1 and timezone.now().month == 1:
+        scheduled_expenses = ScheduleExpense.objects.filter(type="YEARLY")
+        for expense in scheduled_expenses:
+            account = scheduled_expenses.account
+            new_balance = account.balance - expense.cost
+            account.update(balance=new_balance)
+
+
