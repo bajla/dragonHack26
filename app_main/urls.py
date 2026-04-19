@@ -32,5 +32,9 @@ urlpatterns = [
     path('edit-recurring-item/<str:rec_id>', views.edit_recurring_item, name="edit-recurring-item"),
     path('edit-recurring/', views.edit_recurring, name="edit-recurring"),
 
+    path('stream/', views.stream_chat, name="stream"),
+
+    path('export-to-excel/', views.export_to_excel, name="export-to-excel"),
+    path('export-to-json/', views.export_to_json, name="export-to-json"),
 ]
 
