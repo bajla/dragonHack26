@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block extrastyle %}
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js" crossorigin="anonymous"></script>
+{% endblock %}
 {% block title %}Ledger | Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
@@ -31,8 +35,8 @@
     <div class="tick-sep"></div>
     <div class="tick-item">
         <div class="tick-label">Budget used</div>
-        <div class="tick-val">61%</div>
-        <div class="tick-delta">€1,240 left</div>
+        <div class="tick-val">{% if budget_has_limits %}{{ budget_health_pct|floatformat:0 }}%{% else %}—{% endif %}</div>
+        <div class="tick-delta {% if budget_over %}text-red{% endif %}">{% if not has_budgets %}No budgets{% elif not budget_has_limits %}Set limits{% elif budget_over %}€{{ budget_remaining_abs|floatformat:2 }} over{% else %}€{{ budget_remaining_abs|floatformat:2 }} left{% endif %}</div>
     </div>
 </div>
 
@@ -64,24 +68,21 @@
 
 <div class="ai-banner">
     <div class="ai-marker">AI · insight</div>
-    <div class="ai-text">
-        Dining spend is <strong>34% above last month</strong> — driven by a new pattern: <strong>Specialty Coffee Shops</strong> (€87 · 11 visits, category auto-created).
-        Reducing cafe visits by 3x/week projects a <strong>+€38/month</strong> saving. Budget overage: Coffee category is <strong>€153 over limit</strong>.
-    </div>
+    <div class="ai-text ai-text-loading" id="ai-insight-body">Generating insight…</div>
 </div>
 
 <div class="grid-4">
     <div class="mc">
         <div class="mc-label">Budget health</div>
-        <div class="mc-val">61%</div>
-        <div class="mc-progress"><div class="mc-progress-fill"></div></div>
-        <div class="mc-sub">€1,240 remaining</div>
+        <div class="mc-val">{% if budget_has_limits %}{{ budget_health_pct|floatformat:0 }}%{% else %}—{% endif %}</div>
+        <div class="mc-progress">{% if budget_has_limits %}<div class="mc-progress-fill" style="width: {{ budget_health_pct }}%;"></div>{% endif %}</div>
+        <div class="mc-sub {% if budget_over %}text-red{% endif %}">{% if not has_budgets %}Add a budget to track spending{% elif not budget_has_limits %}Set limits on your budgets{% elif budget_over %}€{{ budget_remaining_abs|floatformat:2 }} over budget{% else %}€{{ budget_remaining_abs|floatformat:2 }} remaining{% endif %}</div>
     </div>
     <div class="mc">
         <div class="mc-label">Next recurring</div>
-        <div class="mc-val">Telekom</div>
-        <span class="mc-tag gold-dim text-gold">in 3 days · €39</span>
-        <div class="mc-sub">Apr 21 · N26</div>
+        <div class="mc-val">{% if next_recurring %}{{ next_recurring.title }} {% else %} None {% endif %} </div>
+        <span class="mc-tag gold-dim text-gold">{% if next_recurring %} payment of · {{ next_recurring.cost }} {% else %} --- · --- {% endif %}</span>
+        <div class="mc-sub">{% if next_recurring %}{{ next_recurring.type }} {% else %} --- {% endif %}</div>
     </div>
     <div class="mc">
         <div class="mc-label">Needs review</div>
@@ -137,42 +138,19 @@
             <div class="panel-link">view all →</div>
         </div>
         <div class="panel-body panel-body-tight">
+            {% for trans in latest_transactions %}
             <div class="tx">
-                <div class="tx-ico">🛒</div>
                 <div class="tx-inf">
-                    <div class="tx-merch">Mercator d.d.</div>
+                    <div class="tx-merch">{{ trans.merchant }}</div>
                     <div class="tx-meta">
-                        <div class="tx-cat-tag">Groceries · Fresh Produce</div>
-                        <div class="tx-date">Apr 17</div>
+                        <div class="tx-cat-tag">{{ trans.category.title }}</div>
+                        <div class="tx-date">{{ trans.date }}</div>
                         <div class="tx-acc-dot gold-bg"></div>
                     </div>
                 </div>
-                <div class="tx-amt deb">−€34.20</div>
+                <div class="tx-amt deb">−€{{ trans.cost|floatformat:2 }}</div>
             </div>
-            <div class="tx tx-alert">
-                <div class="tx-ico">⚠</div>
-                <div class="tx-inf">
-                    <div class="tx-merch">Unknown · POS 8821</div>
-                    <div class="tx-meta">
-                        <div class="tx-cat-tag red-dim text-red">Needs review</div>
-                        <div class="tx-date">Apr 16</div>
-                        <div class="tx-acc-dot orange-bg"></div>
-                    </div>
-                </div>
-                <div class="tx-amt warn">−€22.00</div>
-            </div>
-            <div class="tx">
-                <div class="tx-ico">↑</div>
-                <div class="tx-inf">
-                    <div class="tx-merch">April salary</div>
-                    <div class="tx-meta">
-                        <div class="tx-cat-tag green-dim text-green">Income · Employment</div>
-                        <div class="tx-date">Apr 14</div>
-                        <div class="tx-acc-dot gold-bg"></div>
-                    </div>
-                </div>
-                <div class="tx-amt cre">+€3,200</div>
-            </div>
+            {% endfor %}
         </div>
     </div>
 </div>
@@ -286,5 +264,49 @@
 {% endblock %}
 
 {% block extrascripts %}
+<script>
+(() => {
+    const el = document.getElementById("ai-insight-body");
+    if (!el) return;
 
+    const streamUrl = "{% url 'stream' %}";
+    let fullText = "";
+    const es = new EventSource(`${streamUrl}?insight=1`);
+
+    es.onmessage = (event) => {
+        let data;
+        try {
+            data = JSON.parse(event.data);
+        } catch {
+            return;
+        }
+        if (data.done) {
+            es.close();
+            el.classList.remove("ai-text-loading");
+            if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
+                const raw = marked.parse(fullText, { breaks: true, gfm: true });
+                el.innerHTML = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
+            } else {
+                el.textContent = fullText;
+            }
+            return;
+        }
+        if (typeof data.text === "string") {
+            fullText += data.text;
+            el.textContent = fullText;
+        }
+    };
+
+    es.onerror = () => {
+        es.close();
+        el.classList.remove("ai-text-loading");
+        if (!fullText.trim()) {
+            el.textContent = "Could not load AI insight. Check your connection or try again later.";
+        } else if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
+            const raw = marked.parse(fullText, { breaks: true, gfm: true });
+            el.innerHTML = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
+        }
+    };
+})();
+</script>
 {% endblock %}

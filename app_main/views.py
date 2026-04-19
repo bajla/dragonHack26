@@ -12,7 +12,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import ReceiptTransaction, Category, ItemTransaction, Account, IncomeTransaction, ScheduleExpense
+from .models import ReceiptTransaction, Category, ItemTransaction, Account, IncomeTransaction, ScheduleExpense, Budget
 
 from .tasks import receipt_image_background_process
 
@@ -34,6 +34,27 @@ def home(request):
     context['accounts_count'] = Account.objects.filter(user=request.user).count()
     context['balance'] = balance
     context['reccuring_expenses'] = ScheduleExpense.objects.filter(user=request.user)
+    context['latest_transactions'] = ItemTransaction.objects.filter(user=request.user).order_by("-id")[:3]
+    context['next_recurring'] = ScheduleExpense.objects.filter(user=request.user).order_by("-id")[:1]
+
+    budget_agg = Budget.objects.filter(user=request.user).aggregate(
+        total_balance=Sum("balance"),
+        total_limit=Sum("limit"),
+    )
+    total_budget_balance = budget_agg["total_balance"] or Decimal("0")
+    total_budget_limit = budget_agg["total_limit"] or Decimal("0")
+    if total_budget_limit > 0:
+        used_ratio = total_budget_balance / total_budget_limit
+        budget_health_pct = float(min(used_ratio * 100, Decimal("100")))
+    else:
+        budget_health_pct = 0.0
+    budget_remaining = total_budget_limit - total_budget_balance
+    context["budget_health_pct"] = round(budget_health_pct, 1)
+    context["budget_over"] = budget_remaining < 0
+    context["has_budgets"] = Budget.objects.filter(user=request.user).exists()
+    context["budget_has_limits"] = total_budget_limit > 0
+    context["budget_remaining_abs"] = abs(budget_remaining)
+
     return render(request, 'home.html', context)
 
 
@@ -187,12 +208,12 @@ def _chat_transactions_payload(request):
     return json.loads(json.dumps(list(qs), cls=DjangoJSONEncoder))
 
 
-def _build_chat_system_instruction(request):
+def _build_chat_system_instruction(request, insight_mode=False):
     tx_json = _chat_transactions_payload(request)
     tx_blob = json.dumps(tx_json, indent=2, cls=DjangoJSONEncoder)
 
     # Do not use an f-string for the whole prompt: JSON may contain "{" / "}" and break parsing.
-    return (
+    base = (
         "You are Ledger AI, a concise assistant inside a personal budgeting and expense-tracking web app.\n\n"
         "## Output format (required)\n"
         "The chat UI renders your reply as **GitHub-flavored Markdown** (then sanitized). Use Markdown for structure and emphasis:\n"
@@ -221,6 +242,20 @@ def _build_chat_system_instruction(request):
         "Use amounts and categories from this data when answering. If the list is empty, say you have no saved "
         "transactions yet and suggest how to add them."
     )
+    if insight_mode:
+        base += (
+            "\n\n## This request (dashboard insight only)\n"
+            "Respond with **only** a short insight: 2–4 sentences, actionable, plain language. "
+            "No section headings (`##`), no Mermaid diagrams, no tables. "
+            "Use **bold** sparingly for key numbers or category names."
+        )
+    return base
+
+
+DEFAULT_DASHBOARD_INSIGHT_MESSAGE = (
+    "Give a short AI insight about my spending using only the transaction JSON in your context. "
+    "2–4 sentences, actionable, plain language. Use **bold** sparingly for key numbers or categories."
+)
 
 
 def _history_dicts_to_contents(history_dicts):
@@ -244,26 +279,40 @@ def _history_dicts_to_contents(history_dicts):
 
 @login_required
 def stream_chat(request):
-    user_message = (request.GET.get("message") or "").strip()
-    if not user_message:
-        def empty_stream():
-            yield f"data: {json.dumps({'text': 'Please enter a message.'})}\n\n"
-            yield f"data: {json.dumps({'done': True})}\n\n"
+    insight_mode = request.GET.get("insight") in ("1", "true", "yes")
+    raw_message = (request.GET.get("message") or "").strip()
 
-        resp = StreamingHttpResponse(empty_stream(), content_type="text/event-stream")
-        resp["Cache-Control"] = "no-cache"
-        resp["X-Accel-Buffering"] = "no"
-        return resp
+    if insight_mode:
+        user_message = raw_message or DEFAULT_DASHBOARD_INSIGHT_MESSAGE
+    else:
+        user_message = raw_message
+        if not user_message:
+            def empty_stream():
+                yield f"data: {json.dumps({'text': 'Please enter a message.'})}\n\n"
+                yield f"data: {json.dumps({'done': True})}\n\n"
 
-    system_instruction = _build_chat_system_instruction(request)
+            resp = StreamingHttpResponse(empty_stream(), content_type="text/event-stream")
+            resp["Cache-Control"] = "no-cache"
+            resp["X-Accel-Buffering"] = "no"
+            return resp
+
+    system_instruction = _build_chat_system_instruction(request, insight_mode=insight_mode)
 
     def event_stream():
-        history = get_history(request)
-        history.append({"role": "user", "parts": [{"text": user_message}]})
-        request.session["chat_history"] = history
-        request.session.save()
+        if insight_mode:
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(text=user_message)],
+                )
+            ]
+        else:
+            history = get_history(request)
+            history.append({"role": "user", "parts": [{"text": user_message}]})
+            request.session["chat_history"] = history
+            request.session.save()
+            contents = _history_dicts_to_contents(history)
 
-        contents = _history_dicts_to_contents(history)
         assistant_text = ""
         buffer = ""
 
@@ -292,9 +341,11 @@ def stream_chat(request):
             assistant_text += err
             yield f"data: {json.dumps({'text': err})}\n\n"
 
-        history.append({"role": "model", "parts": [{"text": assistant_text}]})
-        request.session["chat_history"] = history
-        request.session.save()
+        if not insight_mode:
+            history = get_history(request)
+            history.append({"role": "model", "parts": [{"text": assistant_text}]})
+            request.session["chat_history"] = history
+            request.session.save()
 
         yield f"data: {json.dumps({'done': True})}\n\n"
 
