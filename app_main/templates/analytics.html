@@ -37,10 +37,15 @@
         <div class="panel-link">Live</div>
     </div>
     <div class="panel-body">
-        <p class="analytics-cost-lead text-muted">
-            Personalized copy and one chart: where spend went up (recent vs prior window), then concrete tips to cut back.
-        </p>
-        <div id="analytics-chart-3" class="analytics-chart-body analytics-cost-body ai-text ai-text-loading">Generating…</div>
+        <div class="analytics-text-chart-split analytics-ledger-split">
+            <div class="analytics-text-chart-split-copy">
+                <p class="analytics-cost-lead text-muted">
+                    Personalized copy and one chart: where spend went up (recent vs prior window), then concrete tips to cut back.
+                </p>
+                <div id="analytics-chart-3" class="analytics-chart-body analytics-cost-body ai-text ai-text-loading">Generating…</div>
+            </div>
+            <div class="analytics-text-chart-split-figure" id="analytics-chart-3-figure"></div>
+        </div>
     </div>
 </div>
 
@@ -50,53 +55,19 @@
         <div class="panel-link">Live</div>
     </div>
     <div class="panel-body">
-        <p class="analytics-income-lead text-muted">
-            Income-only analysis: how cash-in changed between recent and prior windows, ideas to stabilize or grow it, and one chart from your logged income.
-        </p>
-        <div id="analytics-chart-4" class="analytics-chart-body analytics-income-body ai-text ai-text-loading">Generating…</div>
+        <div class="analytics-text-chart-split analytics-ledger-split">
+            <div class="analytics-text-chart-split-copy">
+                <p class="analytics-income-lead text-muted">
+                    Income-only analysis: how cash-in changed between recent and prior windows, ideas to stabilize or grow it, and one chart from your logged income.
+                </p>
+                <div id="analytics-chart-4" class="analytics-chart-body analytics-income-body ai-text ai-text-loading">Generating…</div>
+            </div>
+            <div class="analytics-text-chart-split-figure" id="analytics-chart-4-figure"></div>
+        </div>
     </div>
 </div>
 
 <div class="main-grid">
-    <div class="panel">
-        <div class="panel-head">
-            <div class="panel-title">Category performance</div>
-            <div class="panel-link">last 30 days</div>
-        </div>
-        <div class="panel-body">
-            <div class="cat-item">
-                <div class="cat-top">
-                    <div class="cat-name"><div class="cat-pip gold-bg"></div>Groceries</div>
-                    <div class="cat-amt">€706</div>
-                </div>
-                <div class="cat-track"><div class="cat-fill gold-bg" style="width:88%"></div></div>
-            </div>
-            <div class="cat-item">
-                <div class="cat-top">
-                    <div class="cat-name"><div class="cat-pip blue-bg"></div>Transport</div>
-                    <div class="cat-amt">€274</div>
-                </div>
-                <div class="cat-track"><div class="cat-fill blue-bg" style="width:55%"></div></div>
-            </div>
-        </div>
-    </div>
-    <div class="panel">
-        <div class="panel-head">
-            <div class="panel-title">About these charts</div>
-            <div class="panel-link">Gemini</div>
-        </div>
-        <div class="panel-body">
-            <div class="ai-banner" style="margin-bottom:0;">
-                <div class="ai-marker">AI</div>
-                <div class="ai-text">
-                    The charts stream from the same assistant as chat, using your
-                    <strong>item transactions</strong>, <strong>receipts</strong>, <strong>income</strong>,
-                    <strong>budgets</strong>, and <strong>recurring</strong> schedules. The top row is two focused diagrams;
-                    the full-width blocks below add expense-focused and income-focused narratives with side-by-side text and Mermaid charts.
-                </div>
-            </div>
-        </div>
-    </div>
     <div style="display:flex; gap:10px; justify-self:start;">
         <a href="{% url 'export-to-excel' %}">
             <button class="btn btn-gold">Export Excel</button>
@@ -154,35 +125,20 @@
                 console.warn("Mermaid render skipped:", e);
             }
         }
-        if (el.id === "analytics-chart-3" || el.id === "analytics-chart-4") {
-            layoutAnalyticsTextChartSplit(el);
+        if (el.id === "analytics-chart-3") {
+            moveAnalyticsMermaidToFigureHost(el, document.getElementById("analytics-chart-3-figure"));
+        } else if (el.id === "analytics-chart-4") {
+            moveAnalyticsMermaidToFigureHost(el, document.getElementById("analytics-chart-4-figure"));
         }
     }
 
-    /** Narrative + bullets left, Mermaid diagram right (stacked on small screens). */
-    function layoutAnalyticsTextChartSplit(el) {
-        const diagram = el.querySelector(".mermaid");
-        if (!diagram || el.querySelector(".analytics-text-chart-split")) return;
-        if (diagram.parentElement !== el) return;
-
-        const split = document.createElement("div");
-        split.className = "analytics-text-chart-split";
-        const textCol = document.createElement("div");
-        textCol.className = "analytics-text-chart-split-copy";
-        const chartCol = document.createElement("div");
-        chartCol.className = "analytics-text-chart-split-figure";
-
-        while (el.firstChild && el.firstChild !== diagram) {
-            textCol.appendChild(el.firstChild);
-        }
-        if (el.firstChild === diagram) {
-            chartCol.appendChild(diagram);
-        }
-        while (el.firstChild) {
-            textCol.appendChild(el.firstChild);
-        }
-        split.append(textCol, chartCol);
-        el.appendChild(split);
+    /** Move rendered Mermaid into the panel's right column (layout is in HTML). */
+    function moveAnalyticsMermaidToFigureHost(textRoot, figureHost) {
+        if (!textRoot || !figureHost) return;
+        figureHost.replaceChildren();
+        const diagram = textRoot.querySelector(".mermaid");
+        if (!diagram) return;
+        figureHost.appendChild(diagram);
     }
 
     function startChartStream(slot, elId) {
