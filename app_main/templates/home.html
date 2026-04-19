@@ -184,28 +184,19 @@
             <div class="panel-link">manage →</div>
         </div>
         <div class="panel-body panel-body-tight">
+            {% for expense in reccuring_expenses %}
             <div class="rc">
                 <div class="rc-ico">🏠</div>
                 <div class="rc-inf">
-                    <div class="rc-name">Rent</div>
-                    <div class="rc-cycle">MONTHLY · 1ST · N26</div>
+                    <div class="rc-name">{{ expense.title }}</div>
+                    <div class="rc-cycle">{{ expense.type }} · {{ expense.dayofweek }}</div>
                 </div>
                 <div class="rc-right">
-                    <div class="rc-amt">€680</div>
+                    <div class="rc-amt">€{{ expense.cost }}</div>
                     <div class="rc-next text-muted">paid Apr 1</div>
                 </div>
             </div>
-            <div class="rc">
-                <div class="rc-ico">📡</div>
-                <div class="rc-inf">
-                    <div class="rc-name">Internet · Telekom</div>
-                    <div class="rc-cycle">MONTHLY · 21ST · N26</div>
-                </div>
-                <div class="rc-right">
-                    <div class="rc-amt">€39</div>
-                    <div class="rc-next text-gold">in 3 days</div>
-                </div>
-            </div>
+            {% endfor %}
         </div>
     </div>
 

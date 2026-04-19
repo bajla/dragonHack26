@@ -1,7 +1,11 @@
 from .models import Account
 
 def global_settings(request):
-    # You can fetch database objects, check permissions, etc.
+    if request.user.is_authenticated:
+        accounts = Account.objects.filter(user=request.user)
+    else:
+        accounts = Account.objects.none()
+
     return {
-        'accounts': Account.objects.filter(user=request.user)
+        "accounts": accounts
     }

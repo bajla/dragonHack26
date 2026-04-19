@@ -28,18 +28,26 @@ class ItemTransaction(models.Model):
     merchant = models.CharField(max_length=100, blank=True, null=True)
     name = models.CharField(max_length=100, blank=True, null=True)
 
-class ScheduleExpense(models.Model):
-    title = models.CharField(max_length=100)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
-    type = models.CharField(max_length=100) #week,month,year
-    dayofweek = models.IntegerField()
-
 class Account(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=255)
     balance = models.DecimalField(max_digits=20, decimal_places=2)
+
+class ScheduleExpense(models.Model):
+
+    TYPE_OF_EXPENSE = (
+        ("DAILY", "Daily"),
+        ("MONTHLY", "Monthly"),
+        ("YEARLY", "Yearly")
+    )
+    
+    title = models.CharField(max_length=100)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    cost = models.DecimalField(max_digits=10, decimal_places=2)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True)
+    type = models.CharField(max_length=10, choices=TYPE_OF_EXPENSE)
+
 
 class IncomeTransaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

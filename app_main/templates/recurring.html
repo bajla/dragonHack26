@@ -10,14 +10,15 @@
         <button type="button" class="btn btn-gold btn-sm" id="btn-add-recurring">+ Add recurring</button>
     </div>
     <div class="panel-body panel-body-tight">
+        {% for expense in reccuring_expenses %}
         <div class="rc" data-recurring-id="rent" data-title="Rent" data-cost="680" data-type="monthly" data-day="monday">
             <div class="rc-ico">🏠</div>
             <div class="rc-inf">
-                <div class="rc-name">Rent</div>
-                <div class="rc-cycle">MONTHLY · 1ST · N26</div>
+                <div class="rc-name">{{ expense.title }}</div>
+                <div class="rc-cycle">{{ expense.type }} · {{ expense.dayofweek }}</div>
             </div>
             <div class="rc-right">
-                <div class="rc-amt">€680</div>
+                <div class="rc-amt">€{{ expense.cost }}</div>
                 <div class="rc-next text-muted">paid Apr 1</div>
                 <div class="rc-actions">
                     <button type="button" class="btn btn-sm btn-rec-edit">Edit</button>
@@ -25,21 +26,7 @@
                 </div>
             </div>
         </div>
-        <div class="rc" data-recurring-id="spotify" data-title="Spotify Premium" data-cost="11" data-type="monthly" data-day="wednesday">
-            <div class="rc-ico">🎵</div>
-            <div class="rc-inf">
-                <div class="rc-name">Spotify Premium</div>
-                <div class="rc-cycle">MONTHLY · 22ND · REVOLUT</div>
-            </div>
-            <div class="rc-right">
-                <div class="rc-amt">€11</div>
-                <div class="rc-next text-gold">in 4 days</div>
-                <div class="rc-actions">
-                    <button type="button" class="btn btn-sm btn-rec-edit">Edit</button>
-                    <button type="button" class="btn btn-sm btn-danger btn-rec-delete">Delete</button>
-                </div>
-            </div>
-        </div>
+        {% endfor %}
     </div>
 </div>
 
@@ -65,23 +52,18 @@
             <div class="modal-field">
                 <label class="qa-label" for="recurring-type">Type</label>
                 <select class="qa-input qa-select" id="recurring-type" name="type" required>
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly" selected>Monthly</option>
-                    <option value="yearly">Yearly</option>
+                    {% for value, label in expense_types %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
                 </select>
             </div>
-
+            
             <div class="modal-field">
-                <label class="qa-label" for="recurring-day">Day of the week</label>
-                <select class="qa-input qa-select" id="recurring-day" name="day" required>
-                    <option value="monday">Monday</option>
-                    <option value="tuesday">Tuesday</option>
-                    <option value="wednesday">Wednesday</option>
-                    <option value="thursday">Thursday</option>
-                    <option value="friday">Friday</option>
-                    <option value="saturday">Saturday</option>
-                    <option value="sunday">Sunday</option>
+                <label class="qa-label" for="recurring-account">Account</label>
+                <select class="qa-input qa-select" id="recurring-account" name="account" required>
+                    {% for account in accounts %}
+                    <option value="{{ account.id }}">{{ account.reccuring }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
@@ -109,21 +91,18 @@
         const t = document.getElementById("recurring-title");
         const c = document.getElementById("recurring-cost");
         const ty = document.getElementById("recurring-type");
-        const day = document.getElementById("recurring-day");
-
+        
         if (mode === "edit" && row) {
             title.textContent = "Edit recurring transaction";
             id.value = row.dataset.recurringId || "";
             t.value = row.dataset.title || "";
             c.value = row.dataset.cost || "";
-            ty.value = row.dataset.type || "monthly";
-            day.value = row.dataset.day || "monday";
+            ty.value = row.dataset.type || "MONTHLY";
         } else {
             title.textContent = "Add recurring transaction";
             id.value = "";
             form.reset();
-            ty.value = "monthly";
-            day.value = "monday";
+            ty.value = "MONTHLY";
         }
         t.focus();
     };
@@ -168,68 +147,34 @@
         });
     });
 
-    form?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const id = document.getElementById("recurring-id").value;
-        const title = document.getElementById("recurring-title").value.trim();
-        const costRaw = document.getElementById("recurring-cost").value;
-        const type = document.getElementById("recurring-type").value;
-        const day = document.getElementById("recurring-day").value;
-
-        if (!title || costRaw === "") return;
-        const cost = parseFloat(String(costRaw).replace(",", "."));
-        if (Number.isNaN(cost)) return;
-
-        // Frontend-only: update existing row or add a new one
-        const panelBody = document.querySelector(".panel .panel-body");
-        if (!panelBody) return;
-
-        let row = null;
-        if (id) {
-            row = document.querySelector(`.rc[data-recurring-id="${CSS.escape(id)}"]`);
-        }
-        if (!row) {
-            row = document.createElement("div");
-            row.className = "rc";
-            row.dataset.recurringId = id || `rec_${Date.now()}`;
-            row.innerHTML = `
-                <div class="rc-ico">⏱</div>
-                <div class="rc-inf">
-                    <div class="rc-name"></div>
-                    <div class="rc-cycle"></div>
-                </div>
-                <div class="rc-right">
-                    <div class="rc-amt"></div>
-                    <div class="rc-next text-muted">saved</div>
-                    <div class="rc-actions">
-                        <button type="button" class="btn btn-sm btn-rec-edit">Edit</button>
-                        <button type="button" class="btn btn-sm btn-danger btn-rec-delete">Delete</button>
-                    </div>
-                </div>
-            `;
-            panelBody.appendChild(row);
-            row.querySelector(".btn-rec-edit").addEventListener("click", () => {
-                setMode({ mode: "edit", row });
-                open();
-            });
-            row.querySelector(".btn-rec-delete").addEventListener("click", () => {
-                const t = row.querySelector(".rc-name")?.textContent?.trim() || "this recurring expense";
-                if (!confirm(`Delete ${t}?`)) return;
-                row.remove();
-            });
-        }
-
-        row.dataset.title = title;
-        row.dataset.cost = String(cost);
-        row.dataset.type = type;
-        row.dataset.day = day;
-
-        row.querySelector(".rc-name").textContent = title;
-        row.querySelector(".rc-amt").textContent = `€${cost.toFixed(2)}`;
-        row.querySelector(".rc-cycle").textContent = `${type.toUpperCase()} · ${day.toUpperCase()}`;
-
-        close();
-    });
+   
 })();
+
+document.getElementById("recurring-modal-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+
+    try {
+        const response = await fetch("{% url 'create-recurring' %}", {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-CSRFToken": csrftoken
+            }
+        });
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            console.error("Server error");
+        }
+
+    } catch (error) {
+        console.error("Request failed:", error);
+    }
+});
 </script>
 {% endblock %}

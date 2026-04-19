@@ -9,7 +9,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import ReceiptTransaction, Category, ItemTransaction, Account
+from .models import ReceiptTransaction, Category, ItemTransaction, Account, ScheduleExpense
 
 from .tasks import receipt_image_background_process
 
@@ -30,6 +30,7 @@ def home(request):
     context['net_worth_dec'] = dec_part
     context['accounts_count'] = Account.objects.filter(user=request.user).count()
     context['balance'] = balance
+    context['reccuring_expenses'] = ScheduleExpense.objects.filter(user=request.user)
     return render(request, 'home.html', context)
 
 
@@ -45,8 +46,31 @@ def transactions(request):
 
 @login_required
 def recurring(request):
-    return render(request, 'recurring.html', {"active_page": "recurring"})
+    context = {}
+    context['active_page'] = "reccuring"
+    types = ScheduleExpense.TYPE_OF_EXPENSE
+    context['expense_types'] = types
+    curr_user = request.user
+    context['accounts'] = Account.objects.filter(user=curr_user)
+    reccuring_expenses = ScheduleExpense.objects.filter(user=curr_user)
+    
+    context['reccuring_expenses'] = reccuring_expenses
+    return render(request, 'recurring.html', context)
 
+
+@login_required
+def create_reccuring(request):
+    context = {}
+    reccuring_title = request.POST['title']
+    reccuring_cost = request.POST['cost']
+    reccuring_type = request.POST['type']
+    curr_user = request.user
+    new_scheduled_expense = ScheduleExpense.objects.create(title=reccuring_title,
+                                                           user=curr_user,
+                                                           cost=reccuring_cost,
+                                                           type=reccuring_type,
+                                                          )
+    return HttpResponse(200)
 
 @login_required
 def analytics(request):
@@ -64,10 +88,6 @@ def chat(request):
 
 
 @login_required
-def scan_receipt(request):
-    return render(request, 'scan_receipt.html', {"active_page": "scan"})
-
-@login_required
 def add_account(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
@@ -77,7 +97,7 @@ def add_account(request):
         title = data.get("title", "").strip()
         description = data.get("description", "").strip()
         balance = data.get("balance")
-
+        
         if not title or balance is None:
             return JsonResponse({"error": "Invalid input"}, status=400)
         balance = float(balance)
