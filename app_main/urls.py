@@ -19,4 +19,5 @@ urlpatterns = [
     path('add-expense/', views.add_expense, name="add_expense"),
     path('submit-expense/', views.submit_expense, name="submit_expense"),
     path('add-money/', views.add_money, name="add_money"),
+    path('stream/', views.stream_chat, name="stream")
 ]

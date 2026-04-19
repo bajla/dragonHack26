@@ -1,5 +1,7 @@
+import time
+
 from django.db.models.aggregates import Sum
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from django.shortcuts import render, redirect
 from datetime import datetime
 from google.genai import types
@@ -9,6 +11,8 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
+from google.genai._interactions.types import model
+
 from .models import ReceiptTransaction, Category, ItemTransaction, Account
 
 from .tasks import receipt_image_background_process
@@ -60,8 +64,66 @@ def budgets(request):
 
 @login_required
 def chat(request):
-    return render(request, 'chat.html', {"active_page": "chat"})
+    context = {"active_page": "chat"}
+    return render(request, 'chat.html', context )
 
+def stream_chat(request):
+    user_message = request.GET.get("message", "")
+    prompt = ("You are an ai chatbot for a budgeting/expenses tracker. The enviroment that your messages are in, is pure html."
+           + "This are the transactions that this user has had for this month" + str(ItemTransaction.objects.all().values("budget", "cost", "quantity", "date", "category", "merchant", "name"))
+            + "This is his first message:")
+
+    def event_stream():
+
+        history = get_history(request)
+
+        history.append({
+            "role": "user",
+            "parts": [{"text": user_message}]
+        })
+        request.session["chat_history"] = history
+        request.session.save()
+
+        response = client.models.generate_content_stream(
+            model="gemini-3.1-pro-preview",
+            contents=history,
+        )
+
+        buffer = ""
+        assistant_text = ""
+
+        for chunk in response:
+            if not chunk.text:
+                continue
+
+            buffer += chunk.text
+            assistant_text += chunk.text
+            #small buffering for smoother output
+            if len(buffer) > 20 or buffer.endswith((".", "!", "?", "\n")):
+                yield f"data: {buffer}\n\n"
+                buffer = ""
+
+        if buffer:
+            yield f"data: {buffer}\n\n"
+
+        history.append({
+            "role": "model",
+            "parts": [{"text": assistant_text}]
+        })
+        request.session["chat_history"] = history
+        request.session.save()
+
+        yield "data: [DONE]\n\n"
+
+    resp = StreamingHttpResponse(
+        event_stream(),
+        content_type="text/event-stream"
+    )
+
+    resp["Cache-Control"] = "no-cache"
+    resp["X-Accel-Buffering"] = "no"
+
+    return resp
 
 @login_required
 def scan_receipt(request):
@@ -246,3 +308,10 @@ def submit_expense(request):
 @login_required
 def add_money(request):
     return render(request, 'home.html', {"active_page": "dashboard"})
+
+def get_history(request):
+    return request.session.get("chat_history", [])
+
+
+def save_history(request, history):
+    request.session["chat_history"] = history

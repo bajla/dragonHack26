@@ -17,28 +17,89 @@
         <span class="chat-status">Online</span>
     </div>
 
-    <div class="chat-thread">
-        <article class="chat-msg chat-msg-ai">
-            <div class="chat-bubble">
-                You spent 12% less on transport this month. Want a weekly summary every Sunday?
-            </div>
-        </article>
-        <article class="chat-msg chat-msg-user">
-            <div class="chat-bubble">
-                Yes, and also tell me if coffee spend is above €40/week.
-            </div>
-        </article>
-        <article class="chat-msg chat-msg-ai">
-            <div class="chat-bubble">
-                Done. I will alert you if coffee spend crosses €40 in a week and include it in your Sunday report.
-            </div>
-        </article>
+    <div id="chat-thread" class="chat-thread">
+
     </div>
 
-    <form class="chat-composer" action="#" method="post">
+    <div class="chat-composer">
         <label class="sr-only" for="chat-input">Ask Ledger AI</label>
         <input id="chat-input" class="chat-input" type="text" placeholder="Ask Ledger AI anything about your finances...">
-        <button class="btn btn-gold" type="submit">Send</button>
-    </form>
+        <button id="btn_send_msg" class="btn btn-gold" type="submit">Send</button>
+    </div>
 </section>
+    <script>
+
+    document.getElementById("btn_send_msg").addEventListener("click", sendMessage);
+    let eventSource;
+
+function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const chat = document.getElementById("chat-thread");
+
+    const message = input.value;
+    input.value = "";
+
+    chat.innerHTML += ` <article class="chat-msg chat-msg-user"><div class="chat-bubble"> ${message}</div></article>`;
+    const botMsg = document.createElement("article");
+    botMsg.classList.add("chat-msg", "chat-msg-ai");
+
+    const chatBubble = document.createElement("div");
+    chatBubble.classList.add("chat-bubble");
+
+    botMsg.appendChild(chatBubble);
+    chat.appendChild(botMsg);
+
+    // close old stream if exists
+    if (eventSource) {
+        eventSource.close();
+    }
+
+    eventSource = new EventSource(`/stream/?message=${encodeURIComponent(message)}`);
+
+    let fullText = "";
+    let typingQueue = [];
+    let isTyping = false;
+
+    // RECEIVE STREAM
+    eventSource.onmessage = (event) => {
+        if (event.data === "[DONE]") {
+            eventSource.close();
+            return;
+        }
+
+        typingQueue.push(event.data);
+        processQueue();
+    };
+
+    // TYPING EFFECT ENGINE
+    function processQueue() {
+        if (isTyping || typingQueue.length === 0) return;
+
+        isTyping = true;
+        const chunk = typingQueue.shift();
+
+        let i = 0;
+
+        function typeChar() {
+            if (i < chunk.length) {
+                fullText += chunk[i];
+                botMsg.innerHTML =  fullText;
+                i++;
+
+                // typing speed control
+                setTimeout(typeChar, 15);
+            } else {
+                isTyping = false;
+                processQueue();
+            }
+        }
+
+        typeChar();
+    }
+
+    eventSource.onerror = () => {
+        eventSource.close();
+    };
+}
+    </script>
 {% endblock %}
