@@ -47,3 +47,4 @@ class IncomeTransaction(models.Model):
     description = models.CharField(max_length=255, blank=True, null=True)
     date = models.DateField(auto_now=True)
     type = models.CharField(max_length=100)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, blank=True, null=True)
