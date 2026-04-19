@@ -3,7 +3,60 @@
 {% block title %}Ledger | Analytics{% endblock %}
 {% block page_title %}Analytics{% endblock %}
 
+{% block extrastyle %}
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js" crossorigin="anonymous"></script>
+{% endblock %}
+
 {% block content %}
+<div class="analytics-charts-row">
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">AI chart — spending</div>
+            <div class="panel-link">Live</div>
+        </div>
+        <div class="panel-body">
+            <div id="analytics-chart-1" class="analytics-chart-body ai-text ai-text-loading">Generating chart…</div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">AI chart — income &amp; budgets</div>
+            <div class="panel-link">Live</div>
+        </div>
+        <div class="panel-body">
+            <div id="analytics-chart-2" class="analytics-chart-body ai-text ai-text-loading">Generating chart…</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel analytics-cost-panel">
+    <div class="panel-head">
+        <div class="panel-title">AI — trim expenses &amp; rising costs</div>
+        <div class="panel-link">Live</div>
+    </div>
+    <div class="panel-body">
+        <p class="analytics-cost-lead text-muted">
+            Personalized copy and one chart: where spend went up (recent vs prior window), then concrete tips to cut back.
+        </p>
+        <div id="analytics-chart-3" class="analytics-chart-body analytics-cost-body ai-text ai-text-loading">Generating…</div>
+    </div>
+</div>
+
+<div class="panel analytics-income-panel">
+    <div class="panel-head">
+        <div class="panel-title">AI — income outlook</div>
+        <div class="panel-link">Live</div>
+    </div>
+    <div class="panel-body">
+        <p class="analytics-income-lead text-muted">
+            Income-only analysis: how cash-in changed between recent and prior windows, ideas to stabilize or grow it, and one chart from your logged income.
+        </p>
+        <div id="analytics-chart-4" class="analytics-chart-body analytics-income-body ai-text ai-text-loading">Generating…</div>
+    </div>
+</div>
+
 <div class="main-grid">
     <div class="panel">
         <div class="panel-head">
@@ -29,13 +82,18 @@
     </div>
     <div class="panel">
         <div class="panel-head">
-            <div class="panel-title">AI insights</div>
-            <div class="panel-link">confidence high</div>
+            <div class="panel-title">About these charts</div>
+            <div class="panel-link">Gemini</div>
         </div>
         <div class="panel-body">
-            <div class="ai-banner">
+            <div class="ai-banner" style="margin-bottom:0;">
                 <div class="ai-marker">AI</div>
-                <div class="ai-text">Coffee spend trend is elevated for two consecutive weeks. Suggested cap: <strong>€45/week</strong>.</div>
+                <div class="ai-text">
+                    The charts stream from the same assistant as chat, using your
+                    <strong>item transactions</strong>, <strong>receipts</strong>, <strong>income</strong>,
+                    <strong>budgets</strong>, and <strong>recurring</strong> schedules. The top row is two focused diagrams;
+                    the full-width blocks below add expense-focused and income-focused narratives with side-by-side text and Mermaid charts.
+                </div>
             </div>
         </div>
     </div>
@@ -48,4 +106,126 @@
         </a>
     </div>
 </div>
+{% endblock %}
+
+{% block extrascripts %}
+<script>
+(() => {
+    const streamUrl = "{% url 'stream' %}";
+
+    function syncMermaidTheme() {
+        if (typeof mermaid === "undefined") return;
+        const light = document.documentElement.getAttribute("data-theme") === "light";
+        mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: "strict",
+            theme: light ? "neutral" : "dark",
+        });
+    }
+
+    function promoteMermaidBlocks(root) {
+        root.querySelectorAll("pre code.language-mermaid").forEach((code) => {
+            const pre = code.parentElement;
+            if (!pre || pre.tagName !== "PRE") return;
+            const graph = code.textContent || "";
+            const div = document.createElement("div");
+            div.className = "mermaid";
+            div.textContent = graph.trim();
+            pre.replaceWith(div);
+        });
+    }
+
+    function renderMarkdownInto(el, markdown) {
+        if (!el) return;
+        el.classList.remove("ai-text-loading");
+        if (typeof marked === "undefined" || typeof DOMPurify === "undefined") {
+            el.textContent = markdown;
+            return;
+        }
+        const rawHtml = marked.parse(markdown, { breaks: true, gfm: true });
+        el.innerHTML = DOMPurify.sanitize(rawHtml, { USE_PROFILES: { html: true } });
+        el.classList.add("chat-bubble-md");
+        promoteMermaidBlocks(el);
+        if (typeof mermaid !== "undefined") {
+            syncMermaidTheme();
+            try {
+                mermaid.run({ nodes: el.querySelectorAll(".mermaid") });
+            } catch (e) {
+                console.warn("Mermaid render skipped:", e);
+            }
+        }
+        if (el.id === "analytics-chart-3" || el.id === "analytics-chart-4") {
+            layoutAnalyticsTextChartSplit(el);
+        }
+    }
+
+    /** Narrative + bullets left, Mermaid diagram right (stacked on small screens). */
+    function layoutAnalyticsTextChartSplit(el) {
+        const diagram = el.querySelector(".mermaid");
+        if (!diagram || el.querySelector(".analytics-text-chart-split")) return;
+        if (diagram.parentElement !== el) return;
+
+        const split = document.createElement("div");
+        split.className = "analytics-text-chart-split";
+        const textCol = document.createElement("div");
+        textCol.className = "analytics-text-chart-split-copy";
+        const chartCol = document.createElement("div");
+        chartCol.className = "analytics-text-chart-split-figure";
+
+        while (el.firstChild && el.firstChild !== diagram) {
+            textCol.appendChild(el.firstChild);
+        }
+        if (el.firstChild === diagram) {
+            chartCol.appendChild(diagram);
+        }
+        while (el.firstChild) {
+            textCol.appendChild(el.firstChild);
+        }
+        split.append(textCol, chartCol);
+        el.appendChild(split);
+    }
+
+    function startChartStream(slot, elId) {
+        const el = document.getElementById(elId);
+        if (!el) return;
+
+        let fullText = "";
+        const es = new EventSource(`${streamUrl}?analytics_chart=${encodeURIComponent(String(slot))}`);
+
+        es.onmessage = (event) => {
+            let data;
+            try {
+                data = JSON.parse(event.data);
+            } catch {
+                return;
+            }
+            if (data.done) {
+                es.close();
+                renderMarkdownInto(el, fullText);
+                return;
+            }
+            if (typeof data.text === "string") {
+                fullText += data.text;
+                el.textContent = fullText;
+            }
+        };
+
+        es.onerror = () => {
+            es.close();
+            el.classList.remove("ai-text-loading");
+            if (!fullText.trim()) {
+                el.textContent = "Could not load this chart. Check your connection or try refreshing.";
+            } else {
+                renderMarkdownInto(el, fullText);
+            }
+        };
+    }
+
+    syncMermaidTheme();
+    startChartStream(1, "analytics-chart-1");
+    startChartStream(2, "analytics-chart-2");
+    startChartStream(3, "analytics-chart-3");
+    startChartStream(4, "analytics-chart-4");
+})();
+</script>
 {% endblock %}
