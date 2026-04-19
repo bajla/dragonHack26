@@ -28,14 +28,21 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
     existing_categories = Category.objects.all().values('title')
     categories_string = json.dumps(list(existing_categories), indent=2, cls=DjangoJSONEncoder)
     
+    existing_subcategories = Category.objects.filter(parent__isnull=False).values('title')
+    subcategories_string = json.dumps(list(existing_subcategories), indent=2, cls=DjangoJSONEncoder)
+    
     prompt_text = (
         "Extract date, merchant, name, cost, quantity and pick a category from "
        + categories_string
+       + " and pick an existing super specific subcategory from "
+       + subcategories_string
        + "if it fits to any of them, otherwise create a new one."
-       + " It should be an array of jsons for each item with string keys, in english, named lower case." 
-       + "Convert money to euro, divide each item."
-       + "Under the date key it shoud be in a %Y-%m-%d format for strptime, the fields should be empty if no information present"
+       + "A subcategory has to be very specific like type of bread or drink."
+       + " It should be an array of jsons for each item with string keys, items translated to english, named lower case." 
+       + "Convert money to euro, divide each item. The date is at the bottom of the receipt."
+       + "Under date shoud be stored in a %Y-%m-%d format for strptime, the fields should be empty if no information present"
     )
+    
     prompt_contents = None
     if is_Image:
         prompt_contents = [
@@ -70,6 +77,12 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
         else:
             curr_category = Category.objects.create(title=item['category'])
         
+        curr_subcategory = Category.objects.filter(parent=curr_category, title=item['subcategory'])
+        if curr_subcategory:
+            curr_subcategory = curr_subcategory[0]
+        else:
+            curr_subcategory = Category.objects.create(title=item['subcategory'], parent=curr_category)
+        
         new_item = ItemTransaction.objects.create(user=curr_user,
                                                   receipt=new_receipt,
                                                   cost=item['cost'],
@@ -77,5 +90,6 @@ def receipt_image_background_process(receipt_id,  is_Image, user_id):
                                                   date=item_dt,
                                                   category=curr_category,
                                                   merchant=item['merchant'],
-                                                  name=item['name']
+                                                  name=item['name'],
+                                                  subcategory=curr_subcategory
                                                 )
