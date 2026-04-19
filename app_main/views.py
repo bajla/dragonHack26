@@ -543,6 +543,16 @@ def add_account(request):
 
 
 @login_required
+def delete_account(request, account_id):
+    if request.method not in {"POST", "GET"}:
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    account = get_object_or_404(Account, pk=account_id, user=request.user)
+    account.delete()
+    return redirect("dashboard")
+
+
+@login_required
 def process_receipt_image(request):
     uploaded_file = None
     is_Image = False

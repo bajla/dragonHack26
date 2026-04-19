@@ -7,6 +7,39 @@
     <title>{% block title %}Ledger{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/ledger.css' %}">
     <meta name="csrf-token" content="{{ csrf_token }}">
+    <style>
+        .confirm-copy {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .confirm-kicker {
+            display: inline-flex;
+            align-self: flex-start;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 0.5px solid var(--line2);
+            background: var(--gold-dim);
+            color: var(--gold);
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .confirm-text {
+            color: var(--text2);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .confirm-text strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+    </style>
     {% block extrastyle %}{% endblock %}
 </head>
 <body>
@@ -51,6 +84,9 @@
         <div class="accounts-section">
             {% for acc in accounts %}
             <div class="acc-card active">
+                <a href="{% url 'delete-account' acc.id %}" class="acc-close-link" data-account-title="{{ acc.title }}" aria-label="Close account {{ acc.title }}">
+                    <button type="button" class="acc-close-btn">x</button>
+                </a>
                 <div class="acc-top">
                     <div class="acc-pip gold-bg"></div>
                     <div class="acc-name">{{acc.title}}</div>
@@ -133,6 +169,26 @@
     </div>
 </div>
 
+<div class="modal-backdrop" id="delete-account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title" aria-hidden="true" hidden>
+    <div class="modal-sheet">
+        <div class="modal-head">
+            <h2 class="modal-title" id="delete-account-title">Delete account?</h2>
+            <button type="button" class="modal-close" id="delete-account-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="confirm-copy">
+            <div class="confirm-kicker">Confirmation</div>
+            <p class="confirm-text">
+                You’re about to delete <strong id="delete-account-name">this account</strong>.
+                This action cannot be undone.
+            </p>
+            <div class="modal-actions">
+                <button type="button" class="btn" id="delete-account-cancel">Keep account</button>
+                <button type="button" class="btn btn-gold" id="delete-account-confirm">Delete account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <form id="receiptForm" method="POST" enctype="multipart/form-data" action="{% url 'scan_receipt' %}">
     <input
         type="file"
@@ -184,9 +240,15 @@
     const accountModalClose = document.getElementById("account-modal-close");
     const accountModalCancel = document.getElementById("account-modal-cancel");
     const accountModalForm = document.getElementById("account-modal-form");
+    const deleteAccountModal = document.getElementById("delete-account-modal");
+    const deleteAccountClose = document.getElementById("delete-account-close");
+    const deleteAccountCancel = document.getElementById("delete-account-cancel");
+    const deleteAccountConfirm = document.getElementById("delete-account-confirm");
+    const deleteAccountName = document.getElementById("delete-account-name");
     const csrfToken = document
                             .querySelector('meta[name="csrf-token"]')
                             .getAttribute("content");
+    let pendingDeleteHref = null;
 
     const openAccountModal = () => {
         if (!accountModal) return;
@@ -198,10 +260,29 @@
         titleInput?.focus();
     };
 
+    const openDeleteAccountModal = (link) => {
+        if (!deleteAccountModal) return;
+        pendingDeleteHref = link.getAttribute("href");
+        deleteAccountName.textContent = link.dataset.accountTitle ?? "this account";
+        deleteAccountModal.hidden = false;
+        deleteAccountModal.removeAttribute("hidden");
+        deleteAccountModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+        deleteAccountConfirm?.focus();
+    };
+
     const closeAccountModal = () => {
         if (!accountModal) return;
         accountModal.hidden = true;
         accountModal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("modal-open");
+    };
+
+    const closeDeleteAccountModal = () => {
+        if (!deleteAccountModal) return;
+        deleteAccountModal.hidden = true;
+        deleteAccountModal.setAttribute("aria-hidden", "true");
+        pendingDeleteHref = null;
         document.body.classList.remove("modal-open");
     };
 
@@ -217,8 +298,13 @@
         if (e.target === accountModal) closeAccountModal();
     });
 
+    deleteAccountModal?.addEventListener("click", (e) => {
+        if (e.target === deleteAccountModal) closeDeleteAccountModal();
+    });
+
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && accountModal && !accountModal.hidden) closeAccountModal();
+        if (e.key === "Escape" && deleteAccountModal && !deleteAccountModal.hidden) closeDeleteAccountModal();
     });
 
     accountModalForm?.addEventListener("submit", (e) => {
@@ -240,6 +326,21 @@
         closeAccountModal();
         accountModalForm.reset();
         location.reload();
+    });
+
+    deleteAccountClose?.addEventListener("click", closeDeleteAccountModal);
+    deleteAccountCancel?.addEventListener("click", closeDeleteAccountModal);
+    deleteAccountConfirm?.addEventListener("click", () => {
+        if (pendingDeleteHref) {
+            window.location.href = pendingDeleteHref;
+        }
+    });
+
+    document.querySelectorAll(".acc-close-link").forEach((link) => {
+        link.addEventListener("click", (e) => {
+            e.preventDefault();
+            openDeleteAccountModal(link);
+        });
     });
 })();
 
