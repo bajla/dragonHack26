@@ -1,3 +1,14 @@
+# Dragon Hack 2026 project - Ledger
+
+## Description:
+Our product is a cross-platoform web application, where users can track, record and analize their finances. It aims to help users keep their spendings organized in an easily viewable and understandable format. 
+
+## Implementation description:
+We used djengo as the framework of our product and MongoDB as the database. We used the gemini API to categorize receipt images and analize data, to later display it in graph and written formats to the users.
+
+
+
+
 # Django MongoDB Backend - Project Template
 
 This is a Django project starter template for the Django MongoDB Backend.
@@ -26,23 +37,6 @@ the command would look like this:
 ```bash
 django-admin startproject example --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/6.0.x.zip
 ```
-
-
-## Functional Features
-- Reciept photo recognition
-- Reciept self input
-- Setup recurring payments
-- Analysis of finantial data
-
-## UI Features
-- Graphs
-- Recap
-- ...
-
-## ToDo:
-- image 
-- gemini api call
-- mongodb
 
 ## MongoDB setup
 
