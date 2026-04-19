@@ -66,7 +66,6 @@ def home(request):
     context['reccuring_expenses'] = ScheduleExpense.objects.filter(user=request.user)
     context['latest_transactions'] = ItemTransaction.objects.filter(user=request.user).order_by("-id")[:3]
     context['next_recurring'] = ScheduleExpense.objects.filter(user=request.user).order_by("-id")[:1]
-    context['flagged_count'] = ItemTransaction.objects.filter(account__isnull=True).count()
     budget_agg = Budget.objects.filter(user=request.user).aggregate(
         total_balance=Sum("balance"),
         total_limit=Sum("limit"),
@@ -228,7 +227,7 @@ def transactions(request):
             receipt_date = linked_items[0].date
             receipt_merchat = linked_items[0].merchant
 
-            transaction_data.append({'transaction_date':receipt_date, 'transaction_merchant': receipt_merchat, 'item_list': linked_items, 'receipt_id': str(receipt.id)})
+            transaction_data.append({'transaction_date':receipt_date, 'transaction_merchant': receipt_merchat, 'item_list': linked_items, 'receipt_id': str(receipt.id), 'account': receipt.account})
 
     items = ItemTransaction.objects.filter(user=curr_user, receipt=None)
 
@@ -897,6 +896,51 @@ def delete_account(request, account_id):
     account.delete()
     return redirect("dashboard")
 
+@login_required
+def assign_receipt_account(request):
+    account_id = request.POST['assign_to']
+    receipt_id = request.POST['receipt_id']
+    
+    receipt_id = ObjectId(receipt_id)
+    account_id = ObjectId(account_id)
+    
+    receipt = ReceiptTransaction.objects.get(id=receipt_id)
+    items = ItemTransaction.objects.filter(receipt=receipt)
+        
+    account = Account.objects.get(id=account_id)
+    
+    receipt.account = account
+    receipt.save()
+    
+    for item in items:
+        item.account = account
+        account.balance = account.balance - item.cost
+        account.save()
+        item.save()
+    return redirect("transactions")
+
+
+@login_required
+def assign_item_account(request):
+    if request.method != "POST":
+        return redirect("transactions")
+    try:
+        account_id = request.POST["assign_to"]
+        item_id = request.POST["item_id"]
+    except KeyError:
+        return redirect("transactions")
+
+    item = get_object_or_404(ItemTransaction, id=ObjectId(item_id), user=request.user, receipt__isnull=True)
+    if item.account_id:
+        return redirect("transactions")
+
+    account = get_object_or_404(Account, id=ObjectId(account_id), user=request.user)
+    item.account = account
+    account.balance = account.balance - item.cost
+    account.save()
+    item.save()
+    return redirect("transactions")
+
 
 @login_required
 def process_receipt_image(request):
@@ -907,6 +951,7 @@ def process_receipt_image(request):
     account_id = ''
     if 'account' in request.POST:
        account_id = request.POST['account']
+       
     
     if 'image' in request.FILES:
         uploaded_file = request.FILES['image']
@@ -919,7 +964,12 @@ def process_receipt_image(request):
    
     now = datetime.now()
     now_string = now.strftime("%y%m%d%H%M")
-    new_receipt = ReceiptTransaction.objects.create(title=now_string, user=curr_user)
+    if account_id:
+        object_id = ObjectId(account_id)
+        account = Account.objects.get(id=object_id)
+        new_receipt = ReceiptTransaction.objects.create(title=now_string, user=curr_user, account=account)
+    else:
+        new_receipt = ReceiptTransaction.objects.create(title=now_string, user=curr_user)
     new_receipt.file.save(uploaded_file.name, uploaded_file, save=True)
     new_receipt_id = str(new_receipt.pk)
 
